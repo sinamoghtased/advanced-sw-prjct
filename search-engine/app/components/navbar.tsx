@@ -17,7 +17,7 @@ export default function Navbar() {
             Project Plan
           </a>
           <a
-            href="https://github.com/"
+            href="https://github.com/sinamoghtased/advanced-sw-prjct"
             target="_blank"
             rel="noopener noreferrer"
             className="text-zinc-600 transition-colors hover:text-foreground dark:text-zinc-400"
