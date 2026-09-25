@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KWIC Search Engine",
+  title: "Quickdex",
   description:
-    "An object-oriented KWIC indexing system powering a web-based search engine.",
+    "Quickdex: an object-oriented KWIC indexing system powering a web-based search engine.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

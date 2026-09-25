@@ -12,7 +12,7 @@ export default function Home() {
           CS 6362 &middot; Advanced Software Architecture
         </p>
         <h1 className="max-w-2xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-          A KWIC indexing search engine.
+          Quickdex: a KWIC indexing search engine.
         </h1>
         <p className="max-w-2xl text-lg leading-8 text-zinc-600 dark:text-zinc-400">
           An object-oriented Key Word In Context system that generates circular

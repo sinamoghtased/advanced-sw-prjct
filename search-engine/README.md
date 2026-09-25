@@ -1,6 +1,6 @@
-# KWIC Search Engine
+# Quickdex
 
-An object-oriented Key Word In Context (KWIC) indexing system that generates circular word
+Quickdex is an object-oriented Key Word In Context (KWIC) indexing system that generates circular word
 shifts from input text and displays them in alphabetical order, forming the core of a
 web-based search engine.
 
@@ -20,11 +20,12 @@ web-based search engine.
 
 | Document | Contents |
 | -------- | -------- |
-| [**Software Requirements Specification**](docs/SRS.md) | The Phase I requirements deliverable. IEEE-style: scope, product context, external interfaces, all functional and non-functional requirements, traceability, glossary, and a fully worked example. **Authoritative.** |
-| [**Requirements baseline**](docs/REQUIREMENTS.md) | Every requirement identifier in one scannable register, with its statement and verification method. For planning and review; cites the SRS. |
+| [**Software Requirements Specification**](docs/SRS.md) | The Phase I requirements deliverable: 10 functional and 10 non-functional requirements, and their mapping to the architecture. **Authoritative.** |
+| [**Architectural Design Decisions**](docs/Arch-design-decisions.md) | Object-oriented (ADT) architecture: components, connections, constraints, diagrams, and rationale based on the NFRs. |
+| [**Requirements register**](docs/REQUIREMENTS.md) | A checklist of every requirement ID, with its component and verification method. |
 | [Preliminary Project Plan](docs/SE6362-PPP.pdf) | Deliverable schedule and team roles. Also published at [`/project-plan.pdf`](public/project-plan.pdf) and linked from the site navigation. |
 
-Still to come: Architectural Specification, Test Plan, and User Manual.
+Still to come: Test Plan and User Manual.
 
 ## Deliverable schedule
 

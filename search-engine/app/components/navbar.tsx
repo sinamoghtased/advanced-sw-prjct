@@ -5,7 +5,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-10 border-b border-black/[.08] bg-background/80 backdrop-blur dark:border-white/[.145]">
       <nav className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-6">
         <Link href="/" className="font-semibold tracking-tight">
-          KWIC
+          Quickdex
         </Link>
         <div className="flex items-center gap-6 text-sm">
           <a

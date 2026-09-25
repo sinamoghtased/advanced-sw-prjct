@@ -1,0 +1,5 @@
+{
+  "markdown-mermaid.mouseNavigation.enabled": "always",
+  "markdown-mermaid.controls.show": "onHoverOrFocus",
+  "markdown-mermaid.maxHeight": "80vh"
+}
