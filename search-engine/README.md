@@ -12,7 +12,9 @@ web-based search engine.
 | Alessandro Botta | alessandro.botta@utdallas.edu  |
 | Sina Moghtased   | sina.moghtased@utdallas.edu    |
 
-**Stack:** Next.js (front end) · Node.js (back end) · GitHub (repository) · Vercel (deployment)
+**Planned stack:** Next.js (front end) · Java (back end) · GitHub (repository) · Vercel (front-end deployment). Java service hosting remains to be selected.
+
+The current app is a landing page. The KWIC prototype is specified in `docs/INTERIM1.md`.
 
 ---
 
@@ -20,12 +22,9 @@ web-based search engine.
 
 | Document | Contents |
 | -------- | -------- |
-| [**Software Requirements Specification**](docs/SRS.md) | The Phase I requirements deliverable: 10 functional and 10 non-functional requirements, and their mapping to the architecture. **Authoritative.** |
-| [**Architectural Design Decisions**](docs/Arch-design-decisions.md) | Object-oriented (ADT) architecture: components, connections, constraints, diagrams, and rationale based on the NFRs. |
-| [**Requirements register**](docs/REQUIREMENTS.md) | A checklist of every requirement ID, with its component and verification method. |
-| [Preliminary Project Plan](docs/SE6362-PPP.pdf) | Deliverable schedule and team roles. Also published at [`/project-plan.pdf`](public/project-plan.pdf) and linked from the site navigation. |
-
-Still to come: Test Plan and User Manual.
+| [**Interim Project I**](docs/INTERIM1.md) | Current requirements, ADT architecture, traceability, and trade-offs. Replaces the separate SRS and architecture documents. |
+| [**Future requirements for later**](docs/FUTURE_REQUIREMENTS_FOR_LATER.md) | Deferred candidates, outside the Interim I baseline. |
+| [Preliminary Project Plan](docs/SE6362-PreliminaryProjectPlan.pdf) | Deliverable schedule, team roles, and planned tools. The website serves a project-plan PDF at [`/project-plan.pdf`](public/project-plan.pdf). |
 
 ## Deliverable schedule
 
@@ -68,8 +67,8 @@ search-engine/
 │   ├── layout.tsx          # Root layout + navbar
 │   └── page.tsx            # Landing page
 ├── docs/                   # Course deliverables
-│   ├── SRS.md              # Software Requirements Specification
-│   ├── REQUIREMENTS.md     # Requirements register
-│   └── SE6362-PPP.pdf      # Preliminary Project Plan
+│   ├── INTERIM1.md         # Requirements and architecture for Interim I
+│   ├── FUTURE_REQUIREMENTS_FOR_LATER.md
+│   └── SE6362-PreliminaryProjectPlan.pdf
 └── public/                 # Static assets served at the site root
 ```
