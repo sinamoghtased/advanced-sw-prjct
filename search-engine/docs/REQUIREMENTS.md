@@ -12,8 +12,8 @@ correct.
 | ID | Name | Component | V |
 | -- | ---- | --------- | - |
 | FR1.0 | Line Input | `Input`, `LineStorage` | T, L |
-| FR2.0 | Circular Shifting | `CircularShifter` | T, L |
-| FR3.0 | Noise-Word Filtering | `CircularShifter` | T, L |
+| FR2.0 | Circular Shifting | `CircularShift` | T, L |
+| FR3.0 | Noise-Word Filtering | New Phase II component | T, L |
 | FR4.0 | Incremental Alphabetical Sorting | `Alphabetizer` | T, L |
 | FR5.0 | Generation Logging | `MasterControl` | L |
 | NFR1.0 | Understandability | — | I, D |
@@ -27,11 +27,11 @@ correct.
 
 | ID | Name | Component | V |
 | -- | ---- | --------- | - |
-| FR6.0 | Text Input | Web UI, `Input` | D |
-| FR7.0 | Input Validation | Web UI, `Input` | T |
-| FR8.0 | Index Options | Web UI | D |
-| FR9.0 | Index Display and Search | `Output`, `IndexTable` | D |
-| FR10.0 | URL Navigation | `Output` | D |
+| FR6.0 | Text Input | Input Medium, `Input` | D |
+| FR7.0 | Input Validation | `Input` | T |
+| FR8.0 | Index Options | Input Medium | D |
+| FR9.0 | Index Display and Search | `Output`, `SearchEngine` | D |
+| FR10.0 | URL Navigation | `Output`, `SearchEngine` | D |
 | FR11.0 | Export | `Output` | T |
 | NFR7.0 | Portability | — | T, D |
 | NFR8.0 | Usability | — | D |
