@@ -22,8 +22,13 @@ The current app is a landing page. The KWIC prototype is specified in `docs/INTE
 
 | Document | Contents |
 | -------- | -------- |
-| [**Interim Project I**](docs/INTERIM1.md) | Current requirements, ADT architecture, traceability, and trade-offs. Replaces the separate SRS and architecture documents. |
+| [**Interim Project I**](docs/INTERIM1.md) | Current requirements, ADT architecture, traceability, and trade-offs. |
+| [**Software Requirements Specification**](docs/SRS.md) | The Phase I requirements: 10 functional and 10 non-functional requirements, and their mapping to the architecture. |
+| [**Architectural Design Decisions**](docs/Arch-design-decisions.md) | Object-oriented (ADT) architecture: components, connections, constraints, diagrams, and rationale based on the NFRs. |
+| [**Requirements register**](docs/REQUIREMENTS.md) | A checklist of every requirement ID, with its component and verification method. |
 | [**Future requirements for later**](docs/FUTURE_REQUIREMENTS_FOR_LATER.md) | Deferred candidates, outside the Interim I baseline. |
+| [Implementation and test notes](docs/IMPLEMENTATION_AND_TEST_NOTES.md) | Implementation and test notes for the Interim I requirements, with proposed limits and timing targets. |
+| [Architecture presentation](docs/Quickdex.pptx) | Slides for the architectural design. |
 | [Preliminary Project Plan](docs/SE6362-PreliminaryProjectPlan.pdf) | Deliverable schedule, team roles, and planned tools. The website serves a project-plan PDF at [`/project-plan.pdf`](public/project-plan.pdf). |
 
 ## Deliverable schedule
@@ -68,7 +73,12 @@ search-engine/
 │   └── page.tsx            # Landing page
 ├── docs/                   # Course deliverables
 │   ├── INTERIM1.md         # Requirements and architecture for Interim I
+│   ├── SRS.md              # Software Requirements Specification
+│   ├── Arch-design-decisions.md  # Architecture, diagrams, and rationale
+│   ├── REQUIREMENTS.md     # Requirements register
 │   ├── FUTURE_REQUIREMENTS_FOR_LATER.md
+│   ├── IMPLEMENTATION_AND_TEST_NOTES.md
+│   ├── Quickdex.pptx       # Architecture presentation
 │   └── SE6362-PreliminaryProjectPlan.pdf
 └── public/                 # Static assets served at the site root
 ```
