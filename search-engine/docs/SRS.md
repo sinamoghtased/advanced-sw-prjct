@@ -5,7 +5,7 @@
 | | |
 | --- | --- |
 | **Team** | Yasin Sazid · Alessandro Botta · Sina Moghtased |
-| **Version** | 1.4 |
+| **Version** | 1.6 |
 | **Date** | 27 September 2026 |
 | **Aligned with** | Quickdex Architectural Design presentation ([Quickdex.pptx](Quickdex.pptx)) |
 
@@ -144,8 +144,10 @@ Quickdex shall display the index as a paginated table. Each row shall show the k
 context, the source line number, and the URL associated with that entry. The table shall update
 after each line is processed, keeping the entries from earlier lines.
 
-The user shall be able to search the index by keyword. Quickdex shall then show only the entries
-whose keyword starts with the search term.
+The user shall be able to search by one or more words. Quickdex shall show each page (input line)
+in which every search word starts one of the page's words, ignoring case, with the page's link and
+the index entries that matched. Pages that contain the search words together and in order shall
+be listed first. A one-word search therefore finds the entries whose keyword starts with that word.
 
 #### FR10.0 — URL Navigation
 
@@ -155,6 +157,20 @@ a new browser tab.
 #### FR11.0 — Export
 
 Quickdex shall allow the user to download the index as a plain-text or CSV file.
+
+#### FR12.0 — Search Suggestions
+
+While the user types a search, Quickdex shall show up to eight suggested searches that
+complete what has been typed, drawn from the index and from the online source, and let the user
+choose one with the mouse or keyboard.
+
+#### FR13.0 — Live Web Pages
+
+When the user searches the web index, Quickdex shall first fetch matching pages from an online
+sources (by default the free Wikipedia, Hacker News, Stack Exchange, and arXiv APIs) and add any
+new ones to the index, one line at a time, before
+answering the search. The online sources shall be configurable, and searching shall still work
+from the pages already indexed when a source is unavailable.
 
 ---
 
@@ -244,6 +260,8 @@ Operation names follow the architecture presented in [Quickdex.pptx](Quickdex.pp
 | B | FR9.0 Index Display and Search | `Output`, `SearchEngine` | `Output.getOutput()` → `Alphabetizer.getAlphabetizedShift()`, *`displayOutput()`*; `SearchEngine.setSearchEngine()` → `Output.getOutput()`, *`searchKeywordMatches()`*, *`displayResults()`* | `Output` shows the index after every line; `SearchEngine` finds and shows the entries that match a keyword |
 | B | FR10.0 URL Navigation | `Output`, `SearchEngine` | *`displayOutput()`*, *`displayResults()`* | Renders each entry's URL as a link that opens in a new tab |
 | B | FR11.0 Export | `Output` | `getOutput()` | Exports the index as a file |
+| B | FR12.0 Search Suggestions | `SearchEngine` | `suggestSearches()` | Completes the typed words from the index's circular shifts |
+| B | FR13.0 Live Web Pages | Input Medium (online source) → `Input` | `setInput()` | Adds fetched pages to the index, one line at a time |
 
 ### 4.2 Non-functional requirements → design decisions
 
@@ -296,4 +314,6 @@ The four constraints of the architecture, and the requirements each one serves:
 | 1.1 | 22 Sep 2026 | Condensed to FRs, NFRs, and their mapping |
 | 1.2 | 22 Sep 2026 | System named Quickdex; 10 FRs and 10 NFRs |
 | 1.3 | 22 Sep 2026 | Requirements split into KWIC Generation and User parts; layout cleaned up; URL navigation added (11 FRs); Modifiability added (11 NFRs) |
+| 1.6 | 27 Sep 2026 | Search suggestions (FR12.0) and live web pages from an online source (FR13.0) |
+| 1.5 | 27 Sep 2026 | FR9.0 search finds pages by one or more words, phrase matches first |
 | 1.4 | 27 Sep 2026 | Aligned with the architectural design presentation: architecture overview (§1.4); component and operation names; incremental merge (FR4.0); output updates after each line and a separate `SearchEngine` (FR9.0); design decisions follow the presented rationale; architectural constraints mapped to requirements (§4.3) |

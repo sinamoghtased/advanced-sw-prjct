@@ -1,0 +1,136 @@
+https://en.wikipedia.org/wiki/Software_architecture Software architecture: the high-level structure of software systems
+https://en.wikipedia.org/wiki/Software_design Software design turns requirements into a plan for building software
+https://en.wikipedia.org/wiki/Software_engineering Software engineering applies engineering principles to building software
+https://en.wikipedia.org/wiki/Abstract_data_type Abstract data types hide their representation behind operations
+https://en.wikipedia.org/wiki/Information_hiding Information hiding: modules keep their design decisions secret
+https://en.wikipedia.org/wiki/David_Parnas David Parnas, pioneer of information hiding and modular design
+https://en.wikipedia.org/wiki/Mary_Shaw_(computer_scientist) Mary Shaw, software architecture researcher at Carnegie Mellon
+https://en.wikipedia.org/wiki/David_Garlan David Garlan, software architecture researcher at Carnegie Mellon
+https://en.wikipedia.org/wiki/Key_Word_in_Context Key Word in Context indexing lists every keyword with its context
+https://en.wikipedia.org/wiki/Concordance_(publishing) Concordance: an alphabetical list of the words in a book with their context
+https://en.wikipedia.org/wiki/Circular_shift Circular shift: rotating the elements of a sequence
+https://en.wikipedia.org/wiki/Modular_programming Modular programming splits a program into independent modules
+https://en.wikipedia.org/wiki/Separation_of_concerns Separation of concerns in software design
+https://en.wikipedia.org/wiki/Coupling_(computer_programming) Coupling: how strongly software modules depend on each other
+https://en.wikipedia.org/wiki/Cohesion_(computer_science) Cohesion: how closely the parts of a module belong together
+https://en.wikipedia.org/wiki/Encapsulation_(computer_programming) Encapsulation bundles data with the methods that use it
+https://en.wikipedia.org/wiki/Object-oriented_programming Object-oriented programming with objects, classes, and messages
+https://en.wikipedia.org/wiki/Inheritance_(object-oriented_programming) Inheritance in object-oriented programming
+https://en.wikipedia.org/wiki/Polymorphism_(computer_science) Polymorphism: one interface for many types
+https://en.wikipedia.org/wiki/Interface_(computing) Interfaces define how software components interact
+https://en.wikipedia.org/wiki/API Application programming interfaces let programs talk to each other
+https://en.wikipedia.org/wiki/Pipeline_(software) Pipe and filter architecture: data flows through a chain of filters
+https://en.wikipedia.org/wiki/Event-driven_architecture Event-driven architecture and implicit invocation
+https://en.wikipedia.org/wiki/Multitier_architecture Multitier architecture separates presentation, logic, and data layers
+https://en.wikipedia.org/wiki/Microservices Microservices architecture: small independently deployable services
+https://en.wikipedia.org/wiki/Service-oriented_architecture Service-oriented architecture builds systems from services
+https://en.wikipedia.org/wiki/Software_design_pattern Software design patterns: reusable solutions to common design problems
+https://en.wikipedia.org/wiki/Design_Patterns Design Patterns, the Gang of Four book on object-oriented design
+https://en.wikipedia.org/wiki/Singleton_pattern Singleton pattern: a class with exactly one instance
+https://en.wikipedia.org/wiki/Observer_pattern Observer pattern notifies objects when state changes
+https://en.wikipedia.org/wiki/Strategy_pattern Strategy pattern selects an algorithm at run time
+https://en.wikipedia.org/wiki/Adapter_pattern Adapter pattern lets incompatible interfaces work together
+https://en.wikipedia.org/wiki/Decorator_pattern Decorator pattern adds behavior to objects dynamically
+https://en.wikipedia.org/wiki/Factory_method_pattern Factory method pattern creates objects without naming their class
+https://en.wikipedia.org/wiki/Unified_Modeling_Language Unified Modeling Language for modeling software design
+https://en.wikipedia.org/wiki/Class_diagram Class diagram: the classes of a system and their relationships
+https://en.wikipedia.org/wiki/Sequence_diagram Sequence diagram shows how objects interact over time
+https://en.wikipedia.org/wiki/Software_requirements_specification Software requirements specification describes what a system must do
+https://en.wikipedia.org/wiki/Requirements_engineering Requirements engineering: eliciting, analyzing, and managing requirements
+https://en.wikipedia.org/wiki/Functional_requirement Functional requirements define what a system should do
+https://en.wikipedia.org/wiki/Non-functional_requirement Non-functional requirements define how well a system performs
+https://en.wikipedia.org/wiki/Software_quality Software quality: how well software meets its requirements
+https://en.wikipedia.org/wiki/Software_maintenance Software maintenance: modifying software after delivery
+https://en.wikipedia.org/wiki/Scalability Scalability: handling more work by adding resources
+https://en.wikipedia.org/wiki/Software_portability Software portability across operating systems and platforms
+https://en.wikipedia.org/wiki/Usability Usability: how easily people can use a product
+https://en.wikipedia.org/wiki/Web_accessibility Web accessibility makes websites usable by everyone
+https://en.wikipedia.org/wiki/Responsive_web_design Responsive web design adapts pages to any screen size
+https://en.wikipedia.org/wiki/Software_testing Software testing checks that software works as intended
+https://en.wikipedia.org/wiki/Unit_testing Unit testing checks individual components in isolation
+https://en.wikipedia.org/wiki/Integration_testing Integration testing checks that components work together
+https://en.wikipedia.org/wiki/Test-driven_development Test-driven development: write the test before the code
+https://en.wikipedia.org/wiki/Agile_software_development Agile software development in short iterations
+https://en.wikipedia.org/wiki/Scrum_(software_development) Scrum framework for agile project management
+https://en.wikipedia.org/wiki/Waterfall_model Waterfall model: sequential phases of software development
+https://en.wikipedia.org/wiki/Refactoring Refactoring improves code structure without changing its behavior
+https://en.wikipedia.org/wiki/Code_review Code review: examining source code to find mistakes
+https://en.wikipedia.org/wiki/Technical_debt Technical debt: the future cost of quick solutions today
+https://en.wikipedia.org/wiki/Version_control Version control tracks changes to source code
+https://en.wikipedia.org/wiki/Git Git distributed version control system
+https://en.wikipedia.org/wiki/Continuous_integration Continuous integration merges and tests code changes often
+https://en.wikipedia.org/wiki/The_Mythical_Man-Month The Mythical Man-Month: essays on software project management
+https://en.wikipedia.org/wiki/Search_engine Search engines find information in response to a query
+https://en.wikipedia.org/wiki/Web_crawler Web crawlers browse the web to build a search index
+https://en.wikipedia.org/wiki/Search_engine_indexing Search engine indexing collects and stores data for fast lookup
+https://en.wikipedia.org/wiki/Inverted_index Inverted index maps each word to the documents that contain it
+https://en.wikipedia.org/wiki/PageRank PageRank ranks web pages by the links pointing to them
+https://en.wikipedia.org/wiki/Information_retrieval Information retrieval: finding relevant documents in large collections
+https://en.wikipedia.org/wiki/Stop_word Stop words: common words that search engines ignore
+https://en.wikipedia.org/wiki/Stemming Stemming reduces words to their root form for search
+https://en.wikipedia.org/wiki/Autocomplete Autocomplete predicts the rest of a word as you type
+https://en.wikipedia.org/wiki/Full-text_search Full-text search examines every word in stored documents
+https://en.wikipedia.org/wiki/Sorting_algorithm Sorting algorithms put items in a specific order
+https://en.wikipedia.org/wiki/Merge_sort Merge sort: a stable divide and conquer sorting algorithm
+https://en.wikipedia.org/wiki/Quicksort Quicksort: a fast divide and conquer sorting algorithm
+https://en.wikipedia.org/wiki/Insertion_sort Insertion sort builds a sorted list one item at a time
+https://en.wikipedia.org/wiki/Binary_search Binary search finds an item in a sorted list
+https://en.wikipedia.org/wiki/Lexicographic_order Lexicographic order: the dictionary order of words
+https://en.wikipedia.org/wiki/Big_O_notation Big O notation describes how algorithms scale
+https://en.wikipedia.org/wiki/Algorithm Algorithm: a finite sequence of instructions to solve a problem
+https://en.wikipedia.org/wiki/Data_structure Data structures organize data for efficient access
+https://en.wikipedia.org/wiki/Hash_table Hash table maps keys to values for fast lookup
+https://en.wikipedia.org/wiki/Linked_list Linked list: a sequence of nodes that point to each other
+https://en.wikipedia.org/wiki/Trie Trie: a search tree for storing strings by prefix
+https://en.wikipedia.org/wiki/Binary_search_tree Binary search tree keeps keys in sorted order
+https://en.wikipedia.org/wiki/Regular_expression Regular expressions describe search patterns in text
+https://en.wikipedia.org/wiki/Unicode Unicode: a standard for encoding text in every writing system
+https://en.wikipedia.org/wiki/UTF-8 UTF-8 variable-width character encoding for Unicode
+https://en.wikipedia.org/wiki/World_Wide_Web World Wide Web: linked pages accessed over the Internet
+https://en.wikipedia.org/wiki/Hyperlink Hyperlinks connect one web page to another
+https://en.wikipedia.org/wiki/URL URL: the address of a resource on the web
+https://en.wikipedia.org/wiki/HTTP HTTP: the protocol for transferring web pages
+https://en.wikipedia.org/wiki/JSON JSON: a lightweight format for exchanging data
+https://en.wikipedia.org/wiki/REST REST architectural style for web services
+https://en.wikipedia.org/wiki/Web_browser Web browsers display pages from the World Wide Web
+https://en.wikipedia.org/wiki/Cross-site_scripting Cross-site scripting injects malicious scripts into web pages
+https://en.wikipedia.org/wiki/SQL_injection SQL injection attacks databases through user input
+https://en.wikipedia.org/wiki/Computer_security Computer security protects systems and data from attack
+https://en.wikipedia.org/wiki/Database Database: an organized collection of data
+https://en.wikipedia.org/wiki/Relational_database Relational databases store data in tables
+https://en.wikipedia.org/wiki/Cache_(computing) Cache stores data for faster access next time
+https://en.wikipedia.org/wiki/Cloud_computing Cloud computing delivers computing resources on demand
+https://en.wikipedia.org/wiki/Operating_system Operating system manages computer hardware and software
+https://en.wikipedia.org/wiki/Linux Linux open source operating system kernel
+https://en.wikipedia.org/wiki/Java_(programming_language) Java: an object-oriented programming language that runs anywhere
+https://en.wikipedia.org/wiki/JavaScript JavaScript: the programming language of the web
+https://en.wikipedia.org/wiki/TypeScript TypeScript adds static types to JavaScript
+https://en.wikipedia.org/wiki/Compiler Compilers translate source code into machine code
+https://en.wikipedia.org/wiki/Edsger_W._Dijkstra Edsger Dijkstra, pioneer of structured programming and algorithms
+https://en.wikipedia.org/wiki/Donald_Knuth Donald Knuth, author of The Art of Computer Programming
+https://en.wikipedia.org/wiki/Alan_Turing Alan Turing, founder of theoretical computer science
+https://en.wikipedia.org/wiki/Grace_Hopper Grace Hopper, computer pioneer and compiler inventor
+https://en.wikipedia.org/wiki/Ada_Lovelace Ada Lovelace, the first computer programmer
+https://en.wikipedia.org/wiki/Tim_Berners-Lee Tim Berners-Lee, inventor of the World Wide Web
+https://en.wikipedia.org/wiki/The_Descent_of_Man,_and_Selection_in_Relation_to_Sex The Descent of Man by Charles Darwin
+https://en.wikipedia.org/wiki/The_Ascent_of_Man The Ascent of Man, a television series on the history of science
+https://en.wikipedia.org/wiki/The_Old_Man_and_the_Sea The Old Man and the Sea by Ernest Hemingway
+https://en.wikipedia.org/wiki/Of_Mice_and_Men Of Mice and Men by John Steinbeck
+https://en.wikipedia.org/wiki/Pride_and_Prejudice Pride and Prejudice by Jane Austen
+https://en.wikipedia.org/wiki/The_Art_of_Computer_Programming The Art of Computer Programming by Donald Knuth
+https://en.wikipedia.org/wiki/University_of_Texas_at_Dallas The University of Texas at Dallas in Richardson, Texas
+https://www.utdallas.edu UT Dallas official website
+https://nextjs.org Next.js: the React framework for the web
+https://react.dev React: the library for web and native user interfaces
+https://nodejs.org Node.js JavaScript runtime
+https://www.typescriptlang.org TypeScript: JavaScript with syntax for types
+https://tailwindcss.com Tailwind CSS utility-first styling framework
+https://vercel.com Vercel platform for deploying web apps
+https://openjdk.org OpenJDK: the open source Java development kit
+https://maven.apache.org Apache Maven: build and project management for Java
+https://junit.org JUnit: the testing framework for Java
+https://git-scm.com Git: free and open source version control
+https://github.com GitHub: where software is built together
+https://developer.mozilla.org MDN Web Docs: documentation for web developers
+https://www.w3.org World Wide Web Consortium web standards
+https://www.unicode.org The Unicode Consortium

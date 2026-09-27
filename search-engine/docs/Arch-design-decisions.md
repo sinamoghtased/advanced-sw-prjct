@@ -20,6 +20,7 @@
 7. [Sequence Diagram](#7-sequence-diagram)
 8. [Class Diagram](#8-class-diagram)
 9. [Rationale](#9-rationale)
+10. [Implementation](#10-implementation)
 
 ---
 
@@ -190,19 +191,20 @@ flowchart TB
 | **CircularShift** | Generates the circular shifts of each line | `setLines()` · `getShiftedCharacter()` · `getShiftedWordCount()` | `generateShifts()` | How shifts are generated and stored | FR2 |
 | **Alphabetizer** | Keeps all shifts in global alphabetical order, merging each new line's shifts in | `setShifts()` · `getAlphabetizedShift()` | `alphabetize()` | The sorting algorithm | FR4 |
 | **Output** | Retrieves the sorted shifts and shows them on the Output Medium | `getOutput()` | `displayOutput()` | How results are formatted | FR9–FR11 |
-| **SearchEngine** | Takes the user's keyword and the KWIC index, finds matching entries, and shows them | `setSearchEngine()` | `searchKeywordMatches()` · `displayResults()` | How matches are found | FR9, FR10 |
+| **SearchEngine** | Takes the user's search words and the KWIC index, finds the matching pages, and shows them | `setSearchEngine()` | `searchKeywordMatches()` · `displayResults()` | How matches are found | FR9, FR10 |
 | **Input Medium** · **Output Medium** | Where input comes from and where results go: the web page | — | — | — | FR6, FR9 |
 
 ### Search Engine
 
-The KWIC system builds the index; the **SearchEngine** answers questions about it with three
-operations:
+The KWIC system builds the index; the **SearchEngine** answers searches with it, using three
+operations. Every word of a page is the keyword of one index entry, so the index alone can find
+pages by any of their words:
 
 | Operation | Visibility | What it does |
 | --------- | ---------- | ------------ |
-| `setSearchEngine()` | Public | Receives the user's keyword from the Input Medium and the KWIC index from `Output` |
-| `searchKeywordMatches()` | Private | Finds the KWIC entries that match the keyword |
-| `displayResults()` | Private | Shows the matching entries on the Output Medium |
+| `setSearchEngine()` | Public | Receives the user's search words from the Input Medium and the KWIC index from `Output` |
+| `searchKeywordMatches()` | Private | Finds the pages in which every search word starts a keyword, and ranks them: phrase matches first, then pages with more whole-word matches, then alphabetically |
+| `displayResults()` | Private | Shows the matching pages, with their links and matched entries, on the Output Medium |
 
 ---
 
@@ -427,6 +429,41 @@ The same decisions, traced to the non-functional requirements in the [SRS](SRS.m
 | **NFR3 Reusability** | Focused components with few assumptions; engine independent of the web page | §9.4 |
 | **NFR4 Performance** | Incremental processing in memory and incremental merge sort | §9.5 |
 | **NFR6 Modifiability** | Algorithms and data representation hidden inside components | §9.1, §9.2 |
+
+---
+
+## 10. Implementation
+
+Each component is one Java class in [`backend/src/main/java/edu/utdallas/quickdex`](../backend/src/main/java/edu/utdallas/quickdex),
+with the operation names above. The web page is the Input and Output Medium: an HTTP server
+([`api/EngineServer.java`](../backend/src/main/java/edu/utdallas/quickdex/api/EngineServer.java))
+passes its text in and streams each `displayOutput()` back as one JSON line.
+
+The implementation adds a few operations that the presentation does not show:
+
+| Component | Added operation | Why |
+| --------- | --------------- | --- |
+| `LineStorage` | `getLineCount()` · `setUrl()` · `getUrl()` | Numbering new lines, and keeping each line's URL (FR9.0, FR10.0) |
+| `CircularShift` | `getShiftCount()` · `getShiftedLine()` · `getShiftedUrl()` | Telling `Alphabetizer` which shifts are new, and where each came from |
+| `Alphabetizer` | `getShiftCount()` · `getNewShiftPositions()` | Letting `Output` show only the new entries after each line, without scanning the whole index |
+| `Input` | `validate()` | Checking the input limits before any line is processed (FR7.0) |
+| `Output` | `export()` | Downloading the index as CSV or text (FR11.0) |
+| `SearchEngine` | `suggestSearches()` | Suggesting searches while the user types (FR12.0) |
+
+The search engine searches a built-in web index of about 130 pages, built at startup from
+[`corpus.txt`](../backend/src/main/resources/corpus.txt) (one page per line: a URL and its
+description), or any index built in the Indexer.
+
+The web index also grows from an **online source**, which acts as another Input Medium (FR13.0).
+For each search, the frontend fetches matching pages from free online sources (Wikipedia, Hacker
+News, Stack Overflow, and arXiv, plus Brave Search with an API key), turns each into one
+"URL title: description" line, and posts the lines to the backend. The
+engine skips URLs it already has and adds the rest through `MasterControl`, one line at a time,
+exactly as it processes typed input. The `SearchEngine` then answers from the index. The index
+therefore grows with use, which is the incremental processing constraint at work.
+
+`Input` also rejects lines of more than 50 words. A line of *n* words adds *n* shifts of *n* words
+each, so this keeps the index within memory (NFR10.0).
 
 ---
 

@@ -12,9 +12,20 @@ web-based search engine.
 | Alessandro Botta | alessandro.botta@utdallas.edu  |
 | Sina Moghtased   | sina.moghtased@utdallas.edu    |
 
-**Planned stack:** Next.js (front end) · Java (back end) · GitHub (repository) · Vercel (front-end deployment). Java service hosting remains to be selected.
+**Live site:** <https://advanced-sw-prjct.vercel.app> · **Repository:** <https://github.com/sinamoghtased/advanced-sw-prjct>
 
-The current app is a landing page. The KWIC prototype is specified in `docs/INTERIM1.md`.
+**Stack:** Next.js (frontend) · Java (backend) · GitHub (repository) · Vercel (frontend deployment).
+The Java backend is not hosted yet, so searching on the live site needs a hosted backend; to try
+the search engine now, [run it locally](#run-locally).
+
+The home page is the search engine. Each search gathers live pages from free online sources
+(Wikipedia, Hacker News, Stack Overflow, and arXiv), adds them to the KWIC index, and answers from
+the index, with suggestions while you type. The **Indexer** tab builds an index from your own text,
+shows it updating after each line, and can open it in the search engine.
+
+The project has two parts: a Java **backend** ([`backend/`](backend)), the KWIC engine and search
+engine built with the ADT architecture in the design documents, and a Next.js **frontend**
+([`frontend/`](frontend)), the web app.
 
 ---
 
@@ -29,7 +40,7 @@ The current app is a landing page. The KWIC prototype is specified in `docs/INTE
 | [**Future requirements for later**](docs/FUTURE_REQUIREMENTS_FOR_LATER.md) | Deferred candidates, outside the Interim I baseline. |
 | [Implementation and test notes](docs/IMPLEMENTATION_AND_TEST_NOTES.md) | Implementation and test notes for the Interim I requirements, with proposed limits and timing targets. |
 | [Architecture presentation](docs/Quickdex.pptx) | Slides for the architectural design. |
-| [Preliminary Project Plan](docs/SE6362-PreliminaryProjectPlan.pdf) | Deliverable schedule, team roles, and planned tools. The website serves a project-plan PDF at [`/project-plan.pdf`](public/project-plan.pdf). |
+| [Preliminary Project Plan](docs/SE6362-PreliminaryProjectPlan.pdf) | Deliverable schedule, team roles, and planned tools. The website serves a project-plan PDF at [`/project-plan.pdf`](frontend/public/project-plan.pdf). |
 
 ## Deliverable schedule
 
@@ -41,44 +52,98 @@ The current app is a landing page. The KWIC prototype is specified in `docs/INTE
 | Interim Project II              | 11/12/2026 | Sina Moghtased |
 | Final Project II Submission     | 12/01/2026 | Sina Moghtased |
 
-## Getting started
+## Run locally
 
-From the repository root:
+### 1. Install the tools
+
+You need **Node.js 20 or newer**, **Java 21 or newer**, **Maven**, and **Git**. Check them with:
 
 ```bash
-cd search-engine
-npm install
-npm run dev
+node -v     # v20 or newer
+java -version   # 21 or newer
+mvn -v
+git --version
 ```
 
-Open <http://localhost:3000>. The dev server hot-reloads on save; `Ctrl+C` stops it.
-Use `npm run dev -- -p 3001` if port 3000 is taken.
+On macOS with Homebrew, install any that are missing with `brew install node openjdk maven git`.
 
-| Command         | Purpose                             |
-| --------------- | ----------------------------------- |
-| `npm run dev`   | Local development server            |
-| `npm run build` | Production build (type-checks too)  |
-| `npm start`     | Serve the production build          |
-| `npm run lint`  | ESLint                              |
+### 2. Get the code
 
-Deployment is automatic from `main` via Vercel.
+```bash
+git clone https://github.com/sinamoghtased/advanced-sw-prjct.git
+cd advanced-sw-prjct/search-engine
+pwd
+```
+
+`pwd` prints the **project folder**, ending in `advanced-sw-prjct/search-engine`. The steps below
+start from it. The backend and frontend are separate programs, each run from its own subfolder:
+`backend/` and `frontend/`.
+
+> If you already have the code, open a terminal and `cd` into the project folder first. Paths like
+> `backend` only work from there; running `pwd` shows where you are.
+
+### 3. Start the backend (terminal 1)
+
+From the project folder:
+
+```bash
+cd backend && mvn package -DskipTests && java -jar target/quickdex-engine.jar
+```
+
+`mvn package` builds the backend into `target/quickdex-engine.jar`, and `java -jar` starts it. It is
+ready when it prints `Quickdex engine listening on http://localhost:8080`. The first build can take
+a minute while Maven downloads its plugins. Leave this terminal running.
+
+### 4. Start the frontend (terminal 2)
+
+Open a second terminal, `cd` into the project folder, then:
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+`npm install` is needed only the first time; after that, `cd frontend && npm run dev` is enough.
+
+### 5. Open the app
+
+| Page | Link |
+| ---- | ---- |
+| Search engine (home) | <http://localhost:3000> |
+| Indexer: build your own index | <http://localhost:3000/indexer> |
+| About | <http://localhost:3000/about> |
+| Backend health check | <http://localhost:8080/health> |
+
+To stop, press `Ctrl+C` in each terminal. After changing backend code, stop the backend and run
+both backend commands again; the frontend reloads on its own.
+
+### Troubleshooting
+
+| Problem | Fix |
+| ------- | --- |
+| `cd: no such file or directory: backend` or `there is no POM in this directory` | The terminal is not in the project folder. Run `pwd`, `cd` into `advanced-sw-prjct/search-engine`, and try again |
+| "The Quickdex backend is not running" on the page | Start the backend (step 3) and wait for its "listening" message, then reload the page |
+| Port 3000 is in use | `npm run dev -- -p 3001`, then open <http://localhost:3001> |
+| Port 8080 is in use | In `backend/`, start it with `java -jar target/quickdex-engine.jar 9090`; in `frontend/`, start with `QUICKDEX_BACKEND_URL=http://localhost:9090 npm run dev` |
+| "Another next dev server is already running" | Stop the other one (`Ctrl+C` in its terminal) or open the address it prints |
+| No live results from the web | Check your internet connection; searches still work on the pages already indexed |
+
+For settings (ports, online sources, API keys) and every command, see the
+[backend README](backend/README.md) and the [frontend README](frontend/README.md).
 
 ## Project structure
 
 ```
 search-engine/
-├── app/                    # Next.js App Router pages and layouts
-│   ├── components/         # Shared UI components
-│   ├── layout.tsx          # Root layout + navbar
-│   └── page.tsx            # Landing page
-├── docs/                   # Course deliverables
-│   ├── INTERIM1.md         # Requirements and architecture for Interim I
-│   ├── SRS.md              # Software Requirements Specification
-│   ├── Arch-design-decisions.md  # Architecture, diagrams, and rationale
-│   ├── REQUIREMENTS.md     # Requirements register
-│   ├── FUTURE_REQUIREMENTS_FOR_LATER.md
-│   ├── IMPLEMENTATION_AND_TEST_NOTES.md
-│   ├── Quickdex.pptx       # Architecture presentation
-│   └── SE6362-PreliminaryProjectPlan.pdf
-└── public/                 # Static assets served at the site root
+├── README.md       # This file: overview and how to run the project
+├── backend/        # Java backend: the KWIC engine, search engine, and HTTP API (Maven)
+│   └── README.md   # Build, run, test, HTTP API, and code layout
+├── frontend/       # Next.js frontend: the web app (search engine, Indexer, About)
+│   └── README.md   # Run, settings, online sources, and code layout
+└── docs/           # Course deliverables: SRS, architecture, requirements, presentation, plan
 ```
+
+## Deployment
+
+The frontend deploys to Vercel from `main`, with the Vercel project's root directory set to
+`search-engine/frontend`. The backend needs its own Java host, with `QUICKDEX_BACKEND_URL` set in
+Vercel to point to it.

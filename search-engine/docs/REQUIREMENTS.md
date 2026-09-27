@@ -33,6 +33,8 @@ correct.
 | FR9.0 | Index Display and Search | `Output`, `SearchEngine` | D |
 | FR10.0 | URL Navigation | `Output`, `SearchEngine` | D |
 | FR11.0 | Export | `Output` | T |
+| FR12.0 | Search Suggestions | `SearchEngine` | T, D |
+| FR13.0 | Live Web Pages | Input Medium, `Input` | T, D |
 | NFR7.0 | Portability | — | T, D |
 | NFR8.0 | Usability | — | D |
 | NFR9.0 | Responsiveness | — | T, D |
