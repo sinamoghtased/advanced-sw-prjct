@@ -6,9 +6,10 @@
  * posts the lines to the backend, which adds new ones to the KWIC index one line at a time.
  * The backend's SearchEngine then answers the search from its own index.
  *
- * QUICKDEX_WEB_SOURCES lists the sources to use, separated by commas, or "off". The default
- * uses every free source: wikipedia, hackernews, stackexchange, and arxiv. Brave Search is
- * added when BRAVE_API_KEY is set.
+ * QUICKDEX_WEB_SOURCES lists the sources to use, separated by commas: wikipedia, hackernews,
+ * stackexchange, arxiv, and (with BRAVE_API_KEY) brave. Phase I answers only from the
+ * backend's own corpus.txt index, so the default is "off"; set QUICKDEX_WEB_SOURCES to opt
+ * back into live results.
  */
 import { postToEngine } from "@/services/engine/backend";
 import { arxiv } from "./arxiv";
@@ -26,13 +27,10 @@ const ALL_SOURCES: Record<string, WebSource> = {
   brave,
 };
 
-const FREE_SOURCES = ["wikipedia", "hackernews", "stackexchange", "arxiv"];
-
 function enabledSources(): WebSource[] {
   const setting = process.env.QUICKDEX_WEB_SOURCES?.trim().toLowerCase();
-  if (setting === "off") return [];
-  const names = setting ? setting.split(",").map((s) => s.trim()) : [...FREE_SOURCES];
-  if (!setting && process.env.BRAVE_API_KEY) names.push("brave");
+  if (!setting || setting === "off") return [];
+  const names = setting.split(",").map((s) => s.trim());
   return names
     .filter((name) => name !== "brave" || process.env.BRAVE_API_KEY)
     .map((name) => ALL_SOURCES[name])

@@ -18,10 +18,12 @@ web-based search engine.
 The Java backend is not hosted yet, so searching on the live site needs a hosted backend; to try
 the search engine now, [run it locally](#run-locally).
 
-The home page is the search engine. Each search gathers live pages from free online sources
-(Wikipedia, Hacker News, Stack Overflow, and arXiv), adds them to the KWIC index, and answers from
-the index, with suggestions while you type. The **Indexer** tab builds an index from your own text,
-shows it updating after each line, and can open it in the search engine.
+The home page is the search engine. It answers every search from its own KWIC index, built at
+startup from [`backend/src/main/resources/corpus.txt`](backend/src/main/resources/corpus.txt),
+with suggestions while you type. Live pages from free online sources (Wikipedia, Hacker News,
+Stack Overflow, and arXiv) are optional and off by default; see the
+[frontend README](frontend/README.md#online-sources) to opt in. The **Indexer** tab builds an
+index from your own text, shows it updating after each line, and can open it in the search engine.
 
 The project has two parts: a Java **backend** ([`backend/`](backend)), the KWIC engine and search
 engine built with the ADT architecture in the design documents, and a Next.js **frontend**

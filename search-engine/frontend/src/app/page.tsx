@@ -54,7 +54,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
     return <Home index={index} />;
   }
 
-  // Fetch matching pages from the online source into the web index, then search the index.
+  // Optional: fetch matching pages from live online sources into the web index (off by
+  // default in Phase I, which answers only from the backend's own corpus.txt index).
   const live = index ? null : await addWebPages(query);
   const reply = await getFromEngine<SearchResponse>("/search", {
     q: query,

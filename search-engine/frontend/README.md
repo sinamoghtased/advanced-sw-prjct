@@ -1,8 +1,9 @@
 # Quickdex frontend
 
 The Next.js web app: the search engine (home page), the Indexer, and the About page. It sends
-searches to the [Java backend](../backend), and gathers live pages for each search from free online
-sources.
+searches to the [Java backend](../backend), which answers from its own KWIC index built from
+[`corpus.txt`](../backend/src/main/resources/corpus.txt). Live results from free online sources
+are optional and off by default (see [Online sources](#online-sources)).
 
 ## Requirements
 
@@ -31,15 +32,18 @@ Copy [`.env.example`](.env.example) to `.env.local` to change these settings:
 | Variable | Default | Purpose |
 | -------- | ------- | ------- |
 | `QUICKDEX_BACKEND_URL` | `http://localhost:8080` | Where the Java backend runs |
-| `QUICKDEX_WEB_SOURCES` | `wikipedia,hackernews,stackexchange,arxiv` | Online sources for live results, separated by commas, or `off` |
+| `QUICKDEX_WEB_SOURCES` | `off` | Online sources for live results, separated by commas, or `off` (Phase I default: answer only from `corpus.txt`) |
 | `STACKEXCHANGE_KEY` | — | Optional free key that raises Stack Exchange's limit from 300 to 10,000 requests a day |
 | `BRAVE_API_KEY` | — | Adds [Brave Search](https://brave.com/search/api/) for results from the whole web (paid after a monthly credit) |
 
 ## Online sources
 
-For each search, the app asks every enabled source for matching pages and posts them to the
-backend, which adds new ones to its KWIC index one line at a time and then answers the search.
-Answers are cached for a day, and a source that fails or is paused is skipped.
+Phase I answers every search only from the backend's own index, built from
+[`corpus.txt`](../backend/src/main/resources/corpus.txt) (or the file `QUICKDEX_CORPUS` points
+to). Live web sources are optional: set `QUICKDEX_WEB_SOURCES` to opt back in. When enabled, the
+app asks every listed source for matching pages and posts them to the backend, which adds new
+ones to its KWIC index one line at a time and then answers the search. Answers are cached for a
+day, and a source that fails or is paused is skipped.
 
 | Source | Adds | Key | Limit |
 | ------ | ---- | --- | ----- |
