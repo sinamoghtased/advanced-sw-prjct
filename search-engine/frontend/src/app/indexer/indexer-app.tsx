@@ -7,7 +7,6 @@ import {
   type EngineEvent,
   type SearchResponse,
   type Summary,
-  MAX_BYTES,
   MAX_LINES,
   errorMessage,
   readEvents,
@@ -16,10 +15,9 @@ import {
   validate,
   wordsOf,
 } from "@/services/engine/client";
-import { SAMPLE_TEXT } from "./sample";
 
 const PAGE_SIZE = 25;
-const SHOWN_LINES = 100;
+const SHOWN_ENTRIES = 500;
 const SLOW_MOTION_DELAY = 300;
 
 type LineShifts = { line: number; url: string | null; shifts: Entry[] };
@@ -172,20 +170,6 @@ export default function IndexerApp() {
     }
   }
 
-  async function loadFile(file: File) {
-    if (file.size > MAX_BYTES) {
-      setInputError("The file is over the 1 MB limit. Choose a smaller file.");
-      return;
-    }
-    try {
-      const content = new TextDecoder("utf-8", { fatal: true }).decode(await file.arrayBuffer());
-      setText(content);
-      setInputError(null);
-    } catch {
-      setInputError("The file is not UTF-8 plain text. Save it as UTF-8 and try again.");
-    }
-  }
-
   function changeQuery(value: string) {
     setQuery(value);
     setPage(0);
@@ -201,42 +185,16 @@ export default function IndexerApp() {
   const currentPage = Math.min(page, pageCount - 1);
   const pageRows = rows.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
   const indexedLines = state.lines.length;
-  const shownLines = state.lines.slice(-SHOWN_LINES);
+  const shifts = state.lines.flatMap((l) => l.shifts);
+  const shownShifts = shifts.slice(-SHOWN_ENTRIES);
 
   return (
     <div className="flex flex-col gap-10">
       {/* Step 1 and 2: enter text, then create the index. */}
       <section aria-labelledby="input-heading" className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 id="input-heading" className="text-lg font-semibold">
-            1. Enter text
-          </h2>
-          <div className="flex flex-wrap gap-2 text-sm">
-            <label className="cursor-pointer rounded-full border border-black/[.12] px-4 py-1.5 transition-colors hover:bg-black/[.04] dark:border-white/[.2] dark:hover:bg-white/[.06]">
-              Upload .txt file
-              <input
-                type="file"
-                accept=".txt,text/plain"
-                className="sr-only"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void loadFile(file);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-            <button
-              type="button"
-              onClick={() => {
-                setText(SAMPLE_TEXT);
-                setInputError(null);
-              }}
-              className="rounded-full border border-black/[.12] px-4 py-1.5 transition-colors hover:bg-black/[.04] dark:border-white/[.2] dark:hover:bg-white/[.06]"
-            >
-              Load sample
-            </button>
-          </div>
-        </div>
+        <h2 id="input-heading" className="text-lg font-semibold">
+          1. Enter text
+        </h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           One entry per line. A web address at the start or end of a line becomes that
           line&apos;s link.
@@ -317,68 +275,64 @@ export default function IndexerApp() {
             </div>
           )}
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+          <div className="flex flex-col gap-6">
             {/* Circular shifts, in the order they were generated. */}
             <div className="flex min-w-0 flex-col gap-3">
               <h3 className="text-sm font-medium uppercase tracking-widest text-zinc-500">
                 Circular shifts
               </h3>
-              <div className="max-h-[36rem] overflow-y-auto rounded-lg border border-black/[.08] dark:border-white/[.145]">
-                {state.lines.length > SHOWN_LINES && (
-                  <p className="border-b border-black/[.08] px-4 py-2 text-xs text-zinc-500 dark:border-white/[.145]">
-                    Showing the latest {SHOWN_LINES} of {state.lines.length.toLocaleString("en-US")} lines.
-                  </p>
-                )}
-                {shownLines.length === 0 ? (
-                  <p className="px-4 py-6 text-sm text-zinc-500">Waiting for the first line…</p>
-                ) : (
-                  <ol className="divide-y divide-black/[.06] dark:divide-white/[.1]">
-                    {shownLines.map((l) => (
-                      <li key={l.line} className="px-4 py-3">
-                        <p className="mb-1 text-xs font-medium text-zinc-500">Line {l.line}</p>
-                        <ul className="flex flex-col gap-0.5 text-sm">
-                          {l.shifts.map((s) => (
-                            <li
-                              key={s.id}
-                              className={`rounded px-1 ${state.latest.has(s.id) ? "bg-amber-100 dark:bg-amber-400/15" : ""}`}
-                            >
-                              <span className="font-semibold">{s.keyword}</span>{" "}
-                              <span className="text-zinc-600 dark:text-zinc-400">{s.context}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </li>
-                    ))}
-                  </ol>
-                )}
+              {shifts.length > SHOWN_ENTRIES && (
+                <p className="text-xs text-zinc-500">
+                  Showing the latest {SHOWN_ENTRIES.toLocaleString("en-US")} of{" "}
+                  {shifts.length.toLocaleString("en-US")} entries.
+                </p>
+              )}
+              <div className="max-h-[36rem] overflow-x-auto overflow-y-auto rounded-lg border-2 border-amber-500 dark:border-amber-400">
+                <table className="w-full text-left text-sm">
+                  <caption className="sr-only">
+                    Circularly shifted lines, in the order they were generated: keyword, context,
+                    source line, and link
+                  </caption>
+                  <thead className="border-b border-black/[.08] text-xs uppercase tracking-wider text-zinc-500 dark:border-white/[.145]">
+                    <tr>
+                      <th scope="col" className="px-3 py-2 font-medium">Keyword</th>
+                      <th scope="col" className="px-3 py-2 font-medium">Context</th>
+                      <th scope="col" className="px-3 py-2 text-right font-medium">Line</th>
+                      <th scope="col" className="px-3 py-2 font-medium">Link</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-black/[.06] dark:divide-white/[.1]">
+                    {shownShifts.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-3 py-6 text-center text-zinc-500">
+                          Waiting for the first line…
+                        </td>
+                      </tr>
+                    ) : (
+                      shownShifts.map((s) => (
+                        <tr
+                          key={s.id}
+                          className={state.latest.has(s.id) ? "bg-amber-100 dark:bg-amber-400/15" : ""}
+                        >
+                          <td className="px-3 py-2 align-top font-semibold">{s.keyword}</td>
+                          <td className="px-3 py-2 align-top text-zinc-600 dark:text-zinc-400">{s.context}</td>
+                          <td className="px-3 py-2 text-right align-top tabular-nums text-zinc-500">{s.line}</td>
+                          <td className="max-w-48 px-3 py-2 align-top">
+                            <EntryLink url={s.url} />
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
 
-            {/* The alphabetized index, with search and export. */}
+            {/* The alphabetized index, with search. */}
             <div className="flex min-w-0 flex-col gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-sm font-medium uppercase tracking-widest text-zinc-500">
-                  Alphabetized index
-                </h3>
-                {state.status === "done" && state.indexId && (
-                  <div className="flex gap-2 text-sm">
-                    <a
-                      href={`/api/export?index=${state.indexId}&format=csv`}
-                      download="quickdex-index.csv"
-                      className="rounded-full border border-black/[.12] px-3 py-1 transition-colors hover:bg-black/[.04] dark:border-white/[.2] dark:hover:bg-white/[.06]"
-                    >
-                      Export CSV
-                    </a>
-                    <a
-                      href={`/api/export?index=${state.indexId}&format=txt`}
-                      download="quickdex-index.txt"
-                      className="rounded-full border border-black/[.12] px-3 py-1 transition-colors hover:bg-black/[.04] dark:border-white/[.2] dark:hover:bg-white/[.06]"
-                    >
-                      Export TXT
-                    </a>
-                  </div>
-                )}
-              </div>
+              <h3 className="text-sm font-medium uppercase tracking-widest text-zinc-500">
+                Alphabetized index
+              </h3>
 
               <div className="flex flex-col gap-1">
                 <input
@@ -410,7 +364,7 @@ export default function IndexerApp() {
                 </p>
               </div>
 
-              <div className="overflow-x-auto rounded-lg border border-black/[.08] dark:border-white/[.145]">
+              <div className="overflow-x-auto rounded-lg border-2 border-green-600 dark:border-green-400">
                 <table className="w-full text-left text-sm">
                   <caption className="sr-only">
                     Alphabetized KWIC index: keyword, context, source line, and link

@@ -1,6 +1,7 @@
 # Quickdex frontend
 
-The Next.js web app: the search engine (home page), the Indexer, and the About page. It sends
+The Next.js web app: the search engine (home page), the Indexer, the Manual, and the About page.
+It sends
 searches to the [Java backend](../backend), which answers from its own KWIC index built from
 [`corpus.txt`](../backend/src/main/resources/corpus.txt). Live results from free online sources
 are optional and off by default (see [Online sources](#online-sources)).
@@ -60,6 +61,7 @@ src/
 ├── app/                    # Pages and routes (Next.js App Router)
 │   ├── page.tsx            # Search tab: the search engine (home page)
 │   ├── indexer/            # Indexer tab: build an index and watch it update line by line
+│   ├── manual/             # Manual tab: preliminary user manual
 │   ├── about/              # About tab: project, architecture, and team
 │   ├── api/                # Routes the browser calls: search, suggest, index, export
 │   └── layout.tsx          # Page layout and navbar
