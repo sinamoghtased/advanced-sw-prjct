@@ -37,6 +37,26 @@ java -cp target/quickdex-engine.jar edu.utdallas.quickdex.MasterControl input.tx
 | `PORT` (or the first argument) | `8080` | Port for the HTTP API |
 | `QUICKDEX_CORPUS` | [`corpus.txt`](src/main/resources/corpus.txt) | File of pages for the web index at startup: one per line, a URL then its description |
 
+## Deploying
+
+The [frontend](../frontend)'s live Vercel deployment needs a publicly reachable backend (Vercel
+only builds and hosts the Next.js app). A [`Dockerfile`](Dockerfile) and a
+[Render Blueprint](../../render.yaml) are included to deploy this backend to
+[Render](https://render.com):
+
+1. Push this repo to GitHub (already done) and sign in to Render with GitHub.
+2. **New +** → **Blueprint** → pick this repository. Render reads [`render.yaml`](../../render.yaml)
+   at the repo root, builds `search-engine/backend` with its `Dockerfile`, and deploys it as a free
+   web service named `quickdex-backend`.
+3. Once it's live, copy its URL (e.g. `https://quickdex-backend.onrender.com`).
+4. In the Vercel project's **Settings → Environment Variables**, set `QUICKDEX_BACKEND_URL` to that
+   URL for the Production environment, then redeploy the frontend (a new env var needs a rebuild).
+
+Render's free tier sleeps after inactivity, so the first request after a while can take a few
+seconds to wake it. The same `Dockerfile` works on any container host (Railway, Fly.io, a VPS,
+etc.) if you'd rather use one of those instead: build the image from `search-engine/backend`, run
+it with the platform's `PORT` env var set, and point `QUICKDEX_BACKEND_URL` at it the same way.
+
 ## HTTP API
 
 | Method and path | Purpose |

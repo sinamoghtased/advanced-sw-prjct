@@ -1,0 +1,10 @@
+# Render Blueprint for the Quickdex backend. Deploy via the Render dashboard:
+# New + -> Blueprint -> select this repo. See search-engine/backend/README.md#deploying.
+services:
+  - type: web
+    name: quickdex-backend
+    runtime: docker
+    rootDir: search-engine/backend
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health

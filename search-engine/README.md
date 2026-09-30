@@ -150,4 +150,6 @@ search-engine/
 
 The frontend deploys to Vercel from `main`, with the Vercel project's root directory set to
 `search-engine/frontend`. The backend needs its own Java host, with `QUICKDEX_BACKEND_URL` set in
-Vercel to point to it.
+Vercel to point to it — see [Deploying](backend/README.md#deploying) in the backend README for a
+Render setup using the included [`Dockerfile`](backend/Dockerfile) and
+[`render.yaml`](../render.yaml).
