@@ -6,7 +6,7 @@
 
 **Date:** 26 September 2026
 
-**Status:** Requirements and team-selected architecture for the Interim I prototype; implementation pending.
+**Status:** Interim I requirements and selected architecture; prototype implementation is in this repository.
 
 ## 1. Overview
 
@@ -84,24 +84,29 @@ SAS = Software Architecture Specification.
 
 | Caller | Callee |
 | --- | --- |
-| `MasterControl.main()` | `Input.setInput()` |
+| `MasterControl.run()` (diagram: `main()`) | `Input.setInput()` |
 | `Input.setInput()` | `Input.storeInputInLineStorage()` |
 | `Input.storeInputInLineStorage()` | `LineStorage.setCharacter()` |
-| `MasterControl.main()` | `CircularShift.setLines()` |
+| `MasterControl.run()` (diagram: `main()`) | `CircularShift.setLines()` |
 | `CircularShift.setLines()` | `LineStorage.getCharacter()` |
 | `CircularShift.setLines()` | `LineStorage.getWordCount()` |
 | `CircularShift.setLines()` | `CircularShift.generateShifts()` |
-| `MasterControl.main()` | `Alphabetizer.setShifts()` |
+| `MasterControl.run()` (diagram: `main()`) | `Alphabetizer.setShifts()` |
 | `Alphabetizer.setShifts()` | `CircularShift.getShiftedCharacter()` |
 | `Alphabetizer.setShifts()` | `CircularShift.getShiftedWordCount()` |
 | `Alphabetizer.setShifts()` | `Alphabetizer.alphabetize()` |
-| `MasterControl.main()` | `Output.getOutput()` |
+| `MasterControl.run()` (diagram: `main()`) | `Output.getOutput()` |
 | `Output.getOutput()` | `Alphabetizer.getAlphabetizedShift()` |
+| `Output.getOutput()` | `CircularShift.getShiftedCharacter()` |
+| `Output.getOutput()` | `CircularShift.getShiftedWordCount()` |
 | `Output.getOutput()` | `Output.displayOutput()` |
 
 **System I/O:** Input Medium → Input; Output → Output Medium.
 
-**Pending diagram connection:** Output must also retrieve unsorted shifts from CircularShift.
+`Output` retrieves generated-order shifts from `CircularShift` and sorted shifts from `Alphabetizer` before sending both to the Output Medium.
+
+The diagram names the controller operation `main()`; the Java instance method is `run()`. The
+static `main(String[])` method is the command-line launcher.
 
 ## 7. Constraints
 

@@ -7,7 +7,7 @@ import {
   type EngineEvent,
   type SearchResponse,
   type Summary,
-  MAX_LINES,
+  MAX_CHARACTERS,
   errorMessage,
   readEvents,
   splitLines,
@@ -17,7 +17,6 @@ import {
 } from "@/services/engine/client";
 
 const PAGE_SIZE = 25;
-const SHOWN_ENTRIES = 500;
 const SLOW_MOTION_DELAY = 300;
 
 type LineShifts = { line: number; url: string | null; shifts: Entry[] };
@@ -65,7 +64,7 @@ function reducer(state: IndexState, action: Action): IndexState {
           entries ??= next.entries.slice();
           // Inserting in ascending position order reproduces the engine's sorted index.
           for (const placed of event.inserted) entries.splice(placed.pos, 0, toEntry(placed));
-          const shifts = event.inserted.map(toEntry).sort((a, b) => a.id - b.id);
+          const shifts = event.generated;
           next = {
             ...next,
             lines: [...next.lines, { line: event.line, url: shifts[0]?.url ?? null, shifts }],
@@ -97,11 +96,11 @@ export default function IndexerApp() {
   const [results, setResults] = useState<{ query: string; lines: number; matches: Entry[] } | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+  const [copyNotice, setCopyNotice] = useState("");
   const abortRef = useRef<AbortController | null>(null);
 
   const building = state.status === "building";
-  const lineCount = text === "" ? 0 : splitLines(text).length;
-  const byteCount = new TextEncoder().encode(text).length;
+  const characterCount = Array.from(text).length;
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -142,6 +141,7 @@ export default function IndexerApp() {
     if (problem) return;
 
     abortRef.current?.abort();
+    setCopyNotice("");
     const controller = new AbortController();
     abortRef.current = controller;
     setQuery("");
@@ -179,6 +179,18 @@ export default function IndexerApp() {
     }
   }
 
+  async function copyEntries(label: string, entries: Entry[]) {
+    const content = entries
+      .map((entry) => [entry.keyword, entry.context, entry.line, entry.url ?? ""].join("\t"))
+      .join("\n");
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopyNotice(`${label} copied.`);
+    } catch {
+      setCopyNotice("Clipboard access failed. Select the table text and copy it instead.");
+    }
+  }
+
   const searching = query.trim() !== "" && results !== null;
   const rows = searching ? results.matches : state.entries;
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
@@ -186,10 +198,9 @@ export default function IndexerApp() {
   const pageRows = rows.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
   const indexedLines = state.lines.length;
   const shifts = state.lines.flatMap((l) => l.shifts);
-  const shownShifts = shifts.slice(-SHOWN_ENTRIES);
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="grid gap-10 xl:grid-cols-[minmax(18rem,0.8fr)_minmax(0,2fr)]">
       {/* Step 1 and 2: enter text, then create the index. */}
       <section aria-labelledby="input-heading" className="flex flex-col gap-3">
         <h2 id="input-heading" className="text-lg font-semibold">
@@ -220,8 +231,7 @@ export default function IndexerApp() {
             </p>
           ) : (
             <p className="text-zinc-500">
-              {lineCount.toLocaleString("en-US")} / {MAX_LINES.toLocaleString("en-US")} lines ·{" "}
-              {(byteCount / 1000).toFixed(1)} / 1,000 KB
+              {characterCount.toLocaleString("en-US")} / {MAX_CHARACTERS.toLocaleString("en-US")} characters
             </p>
           )}
         </div>
@@ -229,7 +239,7 @@ export default function IndexerApp() {
           <button
             type="button"
             onClick={() => void createIndex()}
-            disabled={building || text.trim() === ""}
+            disabled={building}
             className="flex h-11 items-center justify-center rounded-full bg-foreground px-6 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-[#ccc]"
           >
             {building ? "Creating index…" : "2. Create index"}
@@ -278,15 +288,19 @@ export default function IndexerApp() {
           <div className="flex flex-col gap-6">
             {/* Circular shifts, in the order they were generated. */}
             <div className="flex min-w-0 flex-col gap-3">
-              <h3 className="text-sm font-medium uppercase tracking-widest text-zinc-500">
-                Circular shifts
-              </h3>
-              {shifts.length > SHOWN_ENTRIES && (
-                <p className="text-xs text-zinc-500">
-                  Showing the latest {SHOWN_ENTRIES.toLocaleString("en-US")} of{" "}
-                  {shifts.length.toLocaleString("en-US")} entries.
-                </p>
-              )}
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-medium uppercase tracking-widest text-zinc-500">
+                  Circular shifts
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => void copyEntries("Circular shifts", shifts)}
+                  disabled={shifts.length === 0}
+                  className="rounded-full border border-black/[.12] px-3 py-1 text-sm disabled:opacity-40 dark:border-white/[.2]"
+                >
+                  Copy shifts
+                </button>
+              </div>
               <div className="max-h-[36rem] overflow-x-auto overflow-y-auto rounded-lg border-2 border-amber-500 dark:border-amber-400">
                 <table className="w-full text-left text-sm">
                   <caption className="sr-only">
@@ -302,14 +316,14 @@ export default function IndexerApp() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-black/[.06] dark:divide-white/[.1]">
-                    {shownShifts.length === 0 ? (
+                    {shifts.length === 0 ? (
                       <tr>
                         <td colSpan={4} className="px-3 py-6 text-center text-zinc-500">
                           Waiting for the first line…
                         </td>
                       </tr>
                     ) : (
-                      shownShifts.map((s) => (
+                      shifts.map((s) => (
                         <tr
                           key={s.id}
                           className={state.latest.has(s.id) ? "bg-amber-100 dark:bg-amber-400/15" : ""}
@@ -330,9 +344,20 @@ export default function IndexerApp() {
 
             {/* The alphabetized index, with search. */}
             <div className="flex min-w-0 flex-col gap-3">
-              <h3 className="text-sm font-medium uppercase tracking-widest text-zinc-500">
-                Alphabetized index
-              </h3>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-medium uppercase tracking-widest text-zinc-500">
+                  Alphabetized index
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => void copyEntries("Alphabetized index", rows)}
+                  disabled={rows.length === 0}
+                  className="rounded-full border border-black/[.12] px-3 py-1 text-sm disabled:opacity-40 dark:border-white/[.2]"
+                >
+                  Copy index
+                </button>
+              </div>
+              <p className="min-h-5 text-sm text-zinc-500" aria-live="polite">{copyNotice}</p>
 
               <div className="flex flex-col gap-1">
                 <input

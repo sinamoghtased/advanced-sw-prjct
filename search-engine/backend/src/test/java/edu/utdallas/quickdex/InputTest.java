@@ -70,7 +70,7 @@ class InputTest {
     @Test
     void acceptsInputWithinTheLimits() {
         assertTrue(Input.validate("Descent of Man").isEmpty());
-        assertTrue(Input.validate("word\n".repeat(Input.MAX_LINES)).isEmpty());
+        assertTrue(Input.validate("a".repeat(Input.MAX_CHARACTERS)).isEmpty());
     }
 
     @Test
@@ -80,21 +80,9 @@ class InputTest {
     }
 
     @Test
-    void rejectsTooManyLines() {
-        String message = Input.validate("word\n".repeat(Input.MAX_LINES + 1)).orElseThrow();
-        assertTrue(message.contains("10,001 lines"), message);
-    }
-
-    @Test
-    void rejectsMoreThanOneMegabyte() {
-        String message = Input.validate("abcdefghi\n".repeat(100_001)).orElseThrow();
-        assertTrue(message.contains("1 MB"), message);
-    }
-
-    @Test
-    void rejectsLinesWithTooManyWords() {
-        String message = Input.validate("ok\n" + "w ".repeat(Input.MAX_WORDS_PER_LINE + 1)).orElseThrow();
-        assertTrue(message.startsWith("Line 2 has 51 words"), message);
+    void rejectsMoreThanTenThousandCharacters() {
+        String message = Input.validate("a".repeat(Input.MAX_CHARACTERS + 1)).orElseThrow();
+        assertTrue(message.contains("10,001 characters"), message);
     }
 
     @Test

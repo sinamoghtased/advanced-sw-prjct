@@ -2,8 +2,8 @@
 
 **CS/SE 6362 — Advanced Software Architecture and Design · Fall 2026**
 
-A checklist of the requirements in the [SRS](SRS.md). If the two ever disagree, the SRS is
-correct.
+A historical checklist from the original SRS. The current Interim I baseline is
+[`INTERIM1.md`](INTERIM1.md); this register does not replace or override it.
 
 **Verification:** **T** Test · **D** Demonstration · **I** Inspection · **A** Analysis · **L** Logs
 

@@ -1,6 +1,5 @@
 package edu.utdallas.quickdex;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -26,17 +25,11 @@ public final class Input {
     /** Returned by {@link #setInput()} when the line read was blank and was skipped. */
     public static final int SKIPPED = -2;
 
-    /** The most lines one input may contain (FR7.0). */
-    public static final int MAX_LINES = 10_000;
+    /** The largest input in Unicode code points, including whitespace (FR003). */
+    public static final int MAX_CHARACTERS = 10_000;
 
-    /** The largest input, in UTF-8 bytes (FR7.0). */
-    public static final int MAX_BYTES = 1_000_000;
-
-    /**
-     * The most words one line may contain. A line of n words adds n shifts of n words each,
-     * so this bounds the index size and keeps the engine within its memory (NFR10.0).
-     */
-    public static final int MAX_WORDS_PER_LINE = 50;
+    /** Maximum UTF-8 request size for an input of {@link #MAX_CHARACTERS} code points. */
+    public static final int MAX_REQUEST_BYTES = MAX_CHARACTERS * 4;
 
     private static final Pattern WHITESPACE = Pattern.compile("(?U)\\s+");
     private static final Pattern LINE_BREAK = Pattern.compile("\\r\\n|\\r|\\n");
@@ -50,7 +43,7 @@ public final class Input {
     }
 
     /**
-     * Checks a whole input against the limits before any line is processed (FR7.0).
+     * Checks a user submission against the Interim I character limit before processing (FR003).
      *
      * @return a message that explains the problem and how to fix it, or empty if the input
      *         is acceptable
@@ -59,26 +52,21 @@ public final class Input {
         if (text == null || text.isBlank()) {
             return Optional.of("The input is empty. Enter at least one line of text.");
         }
-        int bytes = text.getBytes(StandardCharsets.UTF_8).length;
-        if (bytes > MAX_BYTES) {
+        int characters = text.codePointCount(0, text.length());
+        if (characters > MAX_CHARACTERS) {
             return Optional.of(String.format(Locale.ROOT,
-                    "The input is %,d bytes, over the 1 MB limit. Remove some text and try again.",
-                    bytes));
+                    "The input has %,d characters, over the %,d-character limit. Remove some text and try again.",
+                    characters, MAX_CHARACTERS));
+        }
+        return validatePageContent(text);
+    }
+
+    /** Validates page batches and the built-in corpus without applying the user-submission limit. */
+    public static Optional<String> validatePageContent(String text) {
+        if (text == null || text.isBlank()) {
+            return Optional.of("The input is empty. Enter at least one line of text.");
         }
         String[] lines = splitLines(text);
-        if (lines.length > MAX_LINES) {
-            return Optional.of(String.format(Locale.ROOT,
-                    "The input has %,d lines, over the %,d-line limit. Remove some lines and try again.",
-                    lines.length, MAX_LINES));
-        }
-        for (int i = 0; i < lines.length; i++) {
-            int words = words(lines[i]).size();
-            if (words > MAX_WORDS_PER_LINE) {
-                return Optional.of(String.format(Locale.ROOT,
-                        "Line %,d has %,d words, over the %d-word limit per line. Split it into shorter lines.",
-                        i + 1, words, MAX_WORDS_PER_LINE));
-            }
-        }
         if (Arrays.stream(lines).allMatch(line -> words(line).isEmpty())) {
             return Optional.of("The input has no words, only URLs. Add some text to each line.");
         }

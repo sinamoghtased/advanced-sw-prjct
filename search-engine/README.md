@@ -36,11 +36,10 @@ engine built with the ADT architecture in the design documents, and a Next.js **
 | Document | Contents |
 | -------- | -------- |
 | [**Interim Project I**](docs/INTERIM1.md) | Current requirements, ADT architecture, traceability, and trade-offs. |
-| [**Software Requirements Specification**](docs/SRS.md) | The Phase I requirements: 10 functional and 10 non-functional requirements, and their mapping to the architecture. |
 | [**Architectural Design Decisions**](docs/Arch-design-decisions.md) | Object-oriented (ADT) architecture: components, connections, constraints, diagrams, and rationale based on the NFRs. |
 | [Folder structure and architecture diagram](docs/diagram.md) | The repo's folder layout and a request-flow diagram, side by side. |
 | [User Manual](docs/USER_MANUAL.md) *(preliminary)* | How to use the app: searching, suggestions, results, and the Indexer tab. Also on the site at [`/manual`](frontend/src/app/manual/page.tsx). |
-| [**Requirements register**](docs/REQUIREMENTS.md) | A checklist of every requirement ID, with its component and verification method. |
+| [Historical requirements register](docs/REQUIREMENTS.md) | Earlier SRS requirement IDs; Interim I is the current project baseline. |
 | [**Future requirements for later**](docs/FUTURE_REQUIREMENTS_FOR_LATER.md) | Deferred candidates, outside the Interim I baseline. |
 | [Implementation and test notes](docs/IMPLEMENTATION_AND_TEST_NOTES.md) | Implementation and test notes for the Interim I requirements, with proposed limits and timing targets. |
 | [Architecture presentation](docs/Quickdex.pptx) | Slides for the architectural design. |
@@ -143,7 +142,7 @@ search-engine/
 │   └── README.md   # Build, run, test, HTTP API, and code layout
 ├── frontend/       # Next.js frontend: the web app (search engine, Indexer, About)
 │   └── README.md   # Run, settings, online sources, and code layout
-└── docs/           # Course deliverables: SRS, architecture, requirements, presentation, plan
+└── docs/           # Course deliverables: Interim I, architecture, presentation, and plan
 ```
 
 ## Deployment

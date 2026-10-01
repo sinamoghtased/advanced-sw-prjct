@@ -24,7 +24,7 @@ export type Summary = {
 
 export type EngineEvent =
   | { type: "start"; index: string; lines: number }
-  | { type: "update"; line: number; size: number; inserted: Placed[] }
+  | { type: "update"; line: number; size: number; generated: Entry[]; inserted: Placed[] }
   | ({ type: "done" } & Summary)
   | { type: "error"; message: string };
 
@@ -53,10 +53,8 @@ export function searchWords(query: string): string[] {
   return query.trim().toLowerCase().split(/\s+/u).filter(Boolean);
 }
 
-/** The engine's input limits (SRS FR7.0). */
-export const MAX_LINES = 10_000;
-export const MAX_BYTES = 1_000_000;
-export const MAX_WORDS_PER_LINE = 50;
+/** Interim I's input limit, counted in Unicode code points including whitespace. */
+export const MAX_CHARACTERS = 10_000;
 
 const URL_WORD = /^https?:\/\/\S+$/i;
 
@@ -77,20 +75,11 @@ export function splitLines(text: string): string[] {
 /** Checks the input before sending it; the engine checks it again. */
 export function validate(text: string): string | null {
   if (text.trim() === "") return "The input is empty. Enter at least one line of text.";
-  const bytes = new TextEncoder().encode(text).length;
-  if (bytes > MAX_BYTES) {
-    return `The input is ${bytes.toLocaleString("en-US")} bytes, over the 1 MB limit. Remove some text and try again.`;
+  const characters = Array.from(text).length;
+  if (characters > MAX_CHARACTERS) {
+    return `The input has ${characters.toLocaleString("en-US")} characters, over the ${MAX_CHARACTERS.toLocaleString("en-US")}-character limit. Remove some text and try again.`;
   }
   const lines = splitLines(text);
-  if (lines.length > MAX_LINES) {
-    return `The input has ${lines.length.toLocaleString("en-US")} lines, over the ${MAX_LINES.toLocaleString("en-US")}-line limit. Remove some lines and try again.`;
-  }
-  for (let i = 0; i < lines.length; i++) {
-    const count = wordsOf(lines[i]).length;
-    if (count > MAX_WORDS_PER_LINE) {
-      return `Line ${i + 1} has ${count} words, over the ${MAX_WORDS_PER_LINE}-word limit per line. Split it into shorter lines.`;
-    }
-  }
   if (lines.every((line) => wordsOf(line).length === 0)) {
     return "The input has no words, only URLs. Add some text to each line.";
   }

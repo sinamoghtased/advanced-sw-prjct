@@ -6,7 +6,8 @@ import java.util.List;
 import java.util.RandomAccess;
 
 /**
- * Retrieves the sorted index from {@link Alphabetizer} and shows it on the Output Medium.
+ * Retrieves generated shifts from {@link CircularShift} and the sorted index from
+ * {@link Alphabetizer}, then shows both on the Output Medium.
  *
  * <p><b>Secret:</b> how results are formatted. Through the private {@link #displayOutput},
  * {@link #getOutput()} shows only the entries added since the last call, with their
@@ -24,14 +25,17 @@ public final class Output {
     }
 
     private final Alphabetizer alphabetizer;
+    private final CircularShift circularShift;
     private final OutputMedium medium;
     private final List<KwicEntry> index = new IndexView();
 
     /** The index size when entries were last shown. */
     private int shown;
+    private int shownGenerated;
 
-    public Output(Alphabetizer alphabetizer, OutputMedium medium) {
+    public Output(Alphabetizer alphabetizer, CircularShift circularShift, OutputMedium medium) {
         this.alphabetizer = alphabetizer;
+        this.circularShift = circularShift;
         this.medium = medium;
     }
 
@@ -48,15 +52,41 @@ public final class Output {
             for (int position : positions) {
                 inserted.add(new PlacedEntry(position, alphabetizer.getAlphabetizedShift(position)));
             }
+            List<KwicEntry> generated = generatedSinceLastOutput();
             shown = size;
-            displayOutput(inserted, size);
+            displayOutput(inserted, generated, size);
         }
         return index;
     }
 
-    private void displayOutput(List<PlacedEntry> inserted, int size) {
-        int lineNumber = inserted.get(0).entry().lineNumber();
-        medium.displayOutput(lineNumber, List.copyOf(inserted), size);
+    private List<KwicEntry> generatedSinceLastOutput() {
+        int end = circularShift.getShiftCount();
+        List<KwicEntry> generated = new ArrayList<>(end - shownGenerated);
+        for (int shift = shownGenerated; shift < end; shift++) {
+            int wordCount = circularShift.getShiftedWordCount(shift);
+            List<String> words = new ArrayList<>(wordCount);
+            for (int word = 0; word < wordCount; word++) {
+                StringBuilder value = new StringBuilder();
+                for (int character = 0; ; character++) {
+                    int codePoint = circularShift.getShiftedCharacter(shift, word, character);
+                    if (codePoint == CircularShift.END) {
+                        break;
+                    }
+                    value.appendCodePoint(codePoint);
+                }
+                words.add(value.toString());
+            }
+            generated.add(new KwicEntry(shift, circularShift.getShiftedLine(shift) + 1,
+                    words.get(0), String.join(" ", words.subList(1, words.size())),
+                    circularShift.getShiftedUrl(shift)));
+        }
+        shownGenerated = end;
+        return List.copyOf(generated);
+    }
+
+    private void displayOutput(List<PlacedEntry> inserted, List<KwicEntry> generated, int size) {
+        int lineNumber = generated.get(0).lineNumber();
+        medium.displayOutput(lineNumber, List.copyOf(inserted), generated, size);
     }
 
     /** Formats the whole index as a file (FR11.0). User text is never treated as code. */

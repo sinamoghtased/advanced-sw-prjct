@@ -37,7 +37,7 @@ flowchart TB
 
     subgraph DOCS["docs/"]
         direction TB
-        D1["SRS.md · REQUIREMENTS.md"]
+        D1["INTERIM1.md · REQUIREMENTS.md"]
         D2["Arch-design-decisions.md"]
         D3["Quickdex.pptx · diagrams"]
         D1 --- D2 --- D3

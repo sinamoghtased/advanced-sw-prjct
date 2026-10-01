@@ -1,8 +1,8 @@
 # Quickdex — Implementation and test notes
 
 These notes support the current Interim I requirements. They are separate from
-presentation content and from future features. The numerical limits and timing
-values are proposed targets to validate, not measured results.
+presentation content and from future features. The input limit is implemented;
+the timing target remains unmeasured.
 
 ## Input and output rules
 
@@ -20,7 +20,7 @@ values are proposed targets to validate, not measured results.
 ## Implementation decisions
 
 - Specify each method's parameters and return values before implementing callers.
-- Complete Output's retrieval path for unsorted shifts, as noted in INTERIM1 §6.
+- `Output` retrieves generated-order shifts from `CircularShift` and sorted shifts from `Alphabetizer`.
 - Validate input before generation; keep state separate between submissions.
 - Preserve earlier alphabetized shifts and merge each new line's shifts into them.
   Do not regenerate earlier lines' shifts. The presentation proposes merge-based sorting.
@@ -33,6 +33,7 @@ values are proposed targets to validate, not measured results.
 | Area | Check |
 | --- | --- |
 | Correctness | One line, multiple lines, repeated words, blank input, extra whitespace, mixed case, Unicode, and the input-size boundary. |
+| FR003 | Accept exactly 10,000 Unicode code points, including whitespace; reject 10,001 with a clear correction message. |
 | Incremental output | Both result areas update after each line; earlier shifts remain present; the final index contains every shift. |
 | Error handling | Invalid input and processing failures show messages and permit retry without misleading old results. |
 | NFR009 | Record tested Chrome/Firefox and Windows/macOS/Linux versions. |

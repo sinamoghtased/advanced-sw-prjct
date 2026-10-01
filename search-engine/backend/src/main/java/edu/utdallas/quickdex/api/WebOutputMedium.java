@@ -1,5 +1,6 @@
 package edu.utdallas.quickdex.api;
 
+import edu.utdallas.quickdex.KwicEntry;
 import edu.utdallas.quickdex.OutputMedium;
 import edu.utdallas.quickdex.PlacedEntry;
 import edu.utdallas.quickdex.SearchResult;
@@ -40,11 +41,17 @@ final class WebOutputMedium implements OutputMedium {
     }
 
     @Override
-    public void displayOutput(int lineNumber, List<PlacedEntry> inserted, int indexSize) {
-        StringBuilder json = new StringBuilder(128 * inserted.size())
+    public void displayOutput(int lineNumber, List<PlacedEntry> inserted,
+            List<KwicEntry> generated, int indexSize) {
+        StringBuilder json = new StringBuilder(256 * inserted.size())
                 .append("{\"type\":\"update\",\"line\":").append(lineNumber)
                 .append(",\"size\":").append(indexSize)
-                .append(",\"inserted\":[");
+                .append(",\"generated\":[");
+        for (int i = 0; i < generated.size(); i++) {
+            json.append(i == 0 ? "{" : ",{");
+            Json.entryFields(json, generated.get(i)).append('}');
+        }
+        json.append("],\"inserted\":[");
         for (int i = 0; i < inserted.size(); i++) {
             PlacedEntry p = inserted.get(i);
             json.append(i == 0 ? "{" : ",{").append("\"pos\":").append(p.position()).append(',');

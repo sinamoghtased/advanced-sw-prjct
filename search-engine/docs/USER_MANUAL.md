@@ -1,7 +1,7 @@
 # Quickdex User Manual (Preliminary)
 
 This is a guide to *using* Quickdex, the search engine — not to its architecture or requirements
-(see [`Arch-design-decisions.md`](Arch-design-decisions.md) and [`SRS.md`](SRS.md) for those). It
+(see [`Arch-design-decisions.md`](Arch-design-decisions.md) and [`INTERIM1.md`](INTERIM1.md) for those). It
 mirrors the [`/manual`](../frontend/src/app/manual/page.tsx) page in the app, which you can open
 from the navbar.
 
@@ -52,10 +52,11 @@ this is the same pipeline that builds the home page's index, just visible.
 1. Open **Indexer** in the navbar.
 2. Enter text: type or paste lines directly. One line = one entry; a web address at the start or
    end of a line becomes that entry's link.
-   - Limits: up to 10,000 lines and 1,000 KB, shown live as a counter under the box.
+   - Limit: 10,000 Unicode code points, including whitespace, shown live under the box.
 3. Click **Create index**. Watch:
    - The **circular shifts** table, listing every rotation generated, in the order it was created.
    - The **alphabetized table**, updating after each line is merged in.
+   - **Copy shifts** and **Copy index** buttons for the two result tables.
    - Turn on **Slow motion** to watch it build one line at a time instead of all at once.
 4. **Filter** the alphabetized table to find specific entries once it's built.
 5. Click **"Search these pages in the search engine →"** to open your own index in the same
@@ -75,7 +76,6 @@ and the team. It links to the project plan PDF and back to the search engine.
   [frontend README](../frontend/README.md#online-sources) if you want to turn them on.
 - Indexes are **in memory only** — restarting the backend rebuilds the built-in index from
   `corpus.txt` and clears any indexes built in the Indexer tab.
-- Each line is capped at 50 words; very long lines are truncated when indexed.
 
 ## 6. Getting help
 

@@ -69,6 +69,7 @@ public final class EngineServer {
     static final int MAX_SUGGESTIONS = 10;
     static final int MAX_WEB_PAGES = 50_000;
     static final int MAX_DELAY_MILLIS = 2_000;
+    private static final int MAX_PAGE_BATCH_BYTES = 1_000_000;
 
     private final HttpServer server;
     private final IndexSession webIndex;
@@ -133,7 +134,7 @@ public final class EngineServer {
     }
 
     private static IndexSession buildWebIndex(String corpus) {
-        Optional<String> problem = Input.validate(corpus);
+        Optional<String> problem = Input.validatePageContent(corpus);
         if (problem.isPresent()) {
             throw new IllegalArgumentException("The web corpus is not valid: " + problem.get());
         }
@@ -220,11 +221,11 @@ public final class EngineServer {
             send(exchange, 405, "application/json", Json.error("Use POST to add pages."));
             return;
         }
-        byte[] bytes = exchange.getRequestBody().readNBytes(Input.MAX_BYTES + 1);
+        byte[] bytes = exchange.getRequestBody().readNBytes(MAX_PAGE_BATCH_BYTES + 1);
         String text = new String(bytes, StandardCharsets.UTF_8);
-        Optional<String> problem = bytes.length > Input.MAX_BYTES
-                ? Optional.of("The pages are over the 1 MB limit.")
-                : Input.validate(text);
+        Optional<String> problem = bytes.length > MAX_PAGE_BATCH_BYTES
+                ? Optional.of("The pages exceed the 1 MB request limit.")
+                : Input.validatePageContent(text);
         if (problem.isPresent()) {
             send(exchange, 400, "application/json", Json.error(problem.get()));
             return;
@@ -256,10 +257,10 @@ public final class EngineServer {
             send(exchange, 405, "application/json", Json.error("Use POST to create an index."));
             return;
         }
-        byte[] bytes = exchange.getRequestBody().readNBytes(Input.MAX_BYTES + 1);
-        if (bytes.length > Input.MAX_BYTES) {
+        byte[] bytes = exchange.getRequestBody().readNBytes(Input.MAX_REQUEST_BYTES + 1);
+        if (bytes.length > Input.MAX_REQUEST_BYTES) {
             send(exchange, 413, "application/json",
-                    Json.error("The input is over the 1 MB limit. Remove some text and try again."));
+                    Json.error("The input exceeds 10,000 characters. Remove some text and try again."));
             return;
         }
         String text;

@@ -15,9 +15,10 @@ public interface OutputMedium {
      * @param lineNumber the line that produced the entries (1-based)
      * @param inserted   the new entries, each with its position in the updated index, in
      *                   ascending position order
+     * @param generated  the shifts for the current line in their original generation order
      * @param indexSize  the number of entries in the index after the update
      */
-    void displayOutput(int lineNumber, List<PlacedEntry> inserted, int indexSize);
+    void displayOutput(int lineNumber, List<PlacedEntry> inserted, List<KwicEntry> generated, int indexSize);
 
     /**
      * Shows the pages that match a search.

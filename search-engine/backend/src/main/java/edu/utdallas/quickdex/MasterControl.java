@@ -49,7 +49,7 @@ public final class MasterControl {
         this.input = new Input(inputMedium, lineStorage);
         this.circularShift = new CircularShift(lineStorage);
         this.alphabetizer = new Alphabetizer(circularShift, order);
-        this.output = new Output(alphabetizer, loggingMedium);
+        this.output = new Output(alphabetizer, circularShift, loggingMedium);
         this.searchEngine = new SearchEngine(output, loggingMedium);
     }
 
@@ -144,10 +144,11 @@ public final class MasterControl {
         }
 
         @Override
-        public void displayOutput(int lineNumber, List<PlacedEntry> inserted, int indexSize) {
+        public void displayOutput(int lineNumber, List<PlacedEntry> inserted,
+                List<KwicEntry> generated, int indexSize) {
             lastInserted = inserted;
             lastSize = indexSize;
-            target.displayOutput(lineNumber, inserted, indexSize);
+            target.displayOutput(lineNumber, inserted, generated, indexSize);
         }
 
         @Override
@@ -193,7 +194,8 @@ public final class MasterControl {
         PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
         OutputMedium console = new OutputMedium() {
             @Override
-            public void displayOutput(int lineNumber, List<PlacedEntry> inserted, int indexSize) {
+            public void displayOutput(int lineNumber, List<PlacedEntry> inserted,
+                    List<KwicEntry> generated, int indexSize) {
                 // The console shows only the final index.
             }
 

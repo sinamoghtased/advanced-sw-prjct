@@ -7,7 +7,7 @@
 | **Team** | Yasin Sazid · Alessandro Botta · Sina Moghtased |
 | **Version** | 2.0 |
 | **Date** | 27 September 2026 |
-| **Based on** | [Software Requirements Specification v1.4](SRS.md) · Architectural design presentation ([Quickdex.pptx](Quickdex.pptx)) |
+| **Based on** | [Interim Project I requirements](INTERIM1.md) · Architectural design presentation ([Quickdex.pptx](Quickdex.pptx)) |
 
 ## Contents
 
@@ -420,7 +420,7 @@ Type architecture**.
 
 ### 9.7 NFR → decision
 
-The same decisions, traced to the non-functional requirements in the [SRS](SRS.md#42-non-functional-requirements--design-decisions).
+The same decisions, traced to the non-functional requirements in [Interim Project I](INTERIM1.md#3-non-functional-requirements).
 
 | NFR | Decision | Rationale |
 | --- | -------- | --------- |
@@ -446,7 +446,7 @@ The implementation adds a few operations that the presentation does not show:
 | `LineStorage` | `getLineCount()` · `setUrl()` · `getUrl()` | Numbering new lines, and keeping each line's URL (FR9.0, FR10.0) |
 | `CircularShift` | `getShiftCount()` · `getShiftedLine()` · `getShiftedUrl()` | Telling `Alphabetizer` which shifts are new, and where each came from |
 | `Alphabetizer` | `getShiftCount()` · `getNewShiftPositions()` | Letting `Output` show only the new entries after each line, without scanning the whole index |
-| `Input` | `validate()` | Checking the input limits before any line is processed (FR7.0) |
+| `Input` | `validate()` | Checking the 10,000-character limit before processing (Interim I FR003) |
 | `Output` | `export()` | Downloading the index as CSV or text (FR11.0) |
 | `SearchEngine` | `suggestSearches()` | Suggesting searches while the user types (FR12.0) |
 
@@ -462,8 +462,8 @@ engine skips URLs it already has and adds the rest through `MasterControl`, one 
 exactly as it processes typed input. The `SearchEngine` then answers from the index. The index
 therefore grows with use, which is the incremental processing constraint at work.
 
-`Input` also rejects lines of more than 50 words. A line of *n* words adds *n* shifts of *n* words
-each, so this keeps the index within memory (NFR10.0).
+The Indexer accepts up to 10,000 Unicode code points per submission, including whitespace, as
+specified by Interim I FR003.
 
 ---
 

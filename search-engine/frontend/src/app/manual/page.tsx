@@ -18,6 +18,7 @@ const indexerSteps = [
   ["Create index", "Watch the circular shifts table fill and the alphabetized table grow, line by line."],
   ["Slow motion", "Optionally build one line at a time instead of all at once."],
   ["Filter", "Find entries in the built alphabetized table by keyword."],
+  ["Copy results", "Copy the circular shifts or alphabetized index as tab-separated text."],
   ["Search it", "Open your own pages in the same search UI used on the home page."],
 ];
 
@@ -25,7 +26,7 @@ const limitations = [
   "Search matches are prefix matches on whole words, not substring or fuzzy matches.",
   "Live web sources exist in the code but are off by default; Phase I answers only from corpus.txt.",
   "Indexes are in memory only — restarting the backend clears anything built in the Indexer tab.",
-  "Each line is capped at 50 words; longer lines are truncated when indexed.",
+  "The Indexer accepts up to 10,000 Unicode code points, including whitespace.",
 ];
 
 export default function ManualPage() {
