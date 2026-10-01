@@ -6,16 +6,16 @@ export const metadata: Metadata = {
 };
 
 const rows: [string, string, string][] = [
-  ["Plain JDK HttpServer", "Information hiding", "Only public methods are exposed."],
-  ["Narrow public methods", "Modifiability", "Swap an algorithm, nothing else breaks."],
-  ["InputMedium / OutputMedium", "Reusability", "Same pipeline for CLI and web."],
-  ["Streaming NDJSON", "Output timing", "One JSON line per line processed."],
-  ["Next.js API routes", "Modifiability", "Frontend only sees JSON."],
-  ["JUnit 5 per component", "Reusability", "Isolated components, isolated tests."],
-  ["Separate Maven / npm builds", "Reusability", "Independent toolchains per component."],
-  ["Docker multi-stage build", "Enhanceability", "Runs on any container host."],
-  ["Vercel + Render", "Modifiability", "Swap either host behind one env var."],
-  ["TypeScript, Tailwind", "—", "General frontend tooling."],
+  ["JDK HttpServer", "Information hiding", "No auto-exposed classes."],
+  ["Narrow public methods", "Modifiability", "Swap internals safely."],
+  ["InputMedium / OutputMedium", "Reusability", "One pipeline, two mediums."],
+  ["Streaming NDJSON", "Output timing", "Line-by-line updates."],
+  ["Next.js API routes", "Modifiability", "Frontend sees only JSON."],
+  ["JUnit 5", "Reusability", "Tests per component."],
+  ["Maven / npm", "Reusability", "Independent builds."],
+  ["Docker", "Enhanceability", "Runs anywhere."],
+  ["Vercel + Render", "Modifiability", "One env var swaps hosts."],
+  ["TypeScript, Tailwind", "—", "Frontend tooling."],
 ];
 
 export default function TechPage() {
@@ -29,7 +29,7 @@ export default function TechPage() {
           Technologies mapped to the rationale
         </h1>
         <p className="max-w-2xl text-zinc-600 dark:text-zinc-400">
-          Every technology choice in Quickdex traces back to a specific architectural goal.
+          Each choice, mapped to the goal it serves.
         </p>
       </div>
 
