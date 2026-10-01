@@ -6,16 +6,16 @@ export const metadata: Metadata = {
 };
 
 const rows: [string, string, string][] = [
-  ["Plain JDK HttpServer, no framework", "Information hiding", "Nothing auto-exposes your classes; only what you make public is public."],
-  ["Narrow public methods per component", "Modifiability of algorithms", "One or two methods per class — swap an internal algorithm, nothing else breaks."],
-  ["InputMedium / OutputMedium interfaces", "Reusability", "Same pipeline classes run unmodified for both the CLI and the web server."],
-  ["Streaming NDJSON over one HTTP response", "Output timing / incremental merge", "One JSON line out per line processed — the constraint, implemented directly."],
-  ["Next.js API routes as a thin proxy", "Modifiability of data", "Frontend only sees JSON; backend storage can change freely behind it."],
-  ["JUnit 5, one test class per component", "Reusability + information hiding", "Proves the separation is real — isolated components are what makes isolated tests possible."],
-  ["Separate Maven / npm builds", "Reusability, at the deployment level", "Two independent toolchains mirror the component separation in code."],
-  ["Docker multi-stage build", "Enhanceability (deployment)", "Same image runs on any container host, no code changes."],
-  ["Vercel + Render, one env var", "Modifiability, at the infra level", "Swap either host or the backend's language entirely; only the HTTP contract matters."],
-  ["TypeScript, Tailwind CSS", "—", "General frontend tooling, not part of the ADT rationale."],
+  ["Plain JDK HttpServer", "Information hiding", "Only public methods are exposed."],
+  ["Narrow public methods", "Modifiability", "Swap an algorithm, nothing else breaks."],
+  ["InputMedium / OutputMedium", "Reusability", "Same pipeline for CLI and web."],
+  ["Streaming NDJSON", "Output timing", "One JSON line per line processed."],
+  ["Next.js API routes", "Modifiability", "Frontend only sees JSON."],
+  ["JUnit 5 per component", "Reusability", "Isolated components, isolated tests."],
+  ["Separate Maven / npm builds", "Reusability", "Independent toolchains per component."],
+  ["Docker multi-stage build", "Enhanceability", "Runs on any container host."],
+  ["Vercel + Render", "Modifiability", "Swap either host behind one env var."],
+  ["TypeScript, Tailwind", "—", "General frontend tooling."],
 ];
 
 export default function TechPage() {
