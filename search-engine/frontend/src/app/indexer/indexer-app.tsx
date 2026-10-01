@@ -200,7 +200,7 @@ export default function IndexerApp() {
   const shifts = state.lines.flatMap((l) => l.shifts);
 
   return (
-    <div className="grid gap-10 xl:grid-cols-[minmax(18rem,0.8fr)_minmax(0,2fr)]">
+    <div className="flex flex-col gap-10">
       {/* Step 1 and 2: enter text, then create the index. */}
       <section aria-labelledby="input-heading" className="flex flex-col gap-3">
         <h2 id="input-heading" className="text-lg font-semibold">
@@ -307,7 +307,7 @@ export default function IndexerApp() {
                     Circularly shifted lines, in the order they were generated: keyword, context,
                     source line, and link
                   </caption>
-                  <thead className="border-b border-black/[.08] text-xs uppercase tracking-wider text-zinc-500 dark:border-white/[.145]">
+                  <thead className="border-b border-black/[.08] text-xs uppercase tracking-wider text-amber-700 dark:border-white/[.145] dark:text-amber-400">
                     <tr>
                       <th scope="col" className="px-3 py-2 font-medium">Keyword</th>
                       <th scope="col" className="px-3 py-2 font-medium">Context</th>
@@ -318,7 +318,7 @@ export default function IndexerApp() {
                   <tbody className="divide-y divide-black/[.06] dark:divide-white/[.1]">
                     {shifts.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="px-3 py-6 text-center text-zinc-500">
+                        <td colSpan={4} className="px-3 py-6 text-center text-amber-700/70 dark:text-amber-400/70">
                           Waiting for the first line…
                         </td>
                       </tr>
@@ -328,9 +328,9 @@ export default function IndexerApp() {
                           key={s.id}
                           className={state.latest.has(s.id) ? "bg-amber-100 dark:bg-amber-400/15" : ""}
                         >
-                          <td className="px-3 py-2 align-top font-semibold">{s.keyword}</td>
-                          <td className="px-3 py-2 align-top text-zinc-600 dark:text-zinc-400">{s.context}</td>
-                          <td className="px-3 py-2 text-right align-top tabular-nums text-zinc-500">{s.line}</td>
+                          <td className="px-3 py-2 align-top font-semibold text-amber-900 dark:text-amber-200">{s.keyword}</td>
+                          <td className="px-3 py-2 align-top text-amber-800/80 dark:text-amber-300/80">{s.context}</td>
+                          <td className="px-3 py-2 text-right align-top tabular-nums text-amber-700 dark:text-amber-400">{s.line}</td>
                           <td className="max-w-48 px-3 py-2 align-top">
                             <EntryLink url={s.url} />
                           </td>
@@ -394,7 +394,7 @@ export default function IndexerApp() {
                   <caption className="sr-only">
                     Alphabetized KWIC index: keyword, context, source line, and link
                   </caption>
-                  <thead className="border-b border-black/[.08] text-xs uppercase tracking-wider text-zinc-500 dark:border-white/[.145]">
+                  <thead className="border-b border-black/[.08] text-xs uppercase tracking-wider text-green-700 dark:border-white/[.145] dark:text-green-400">
                     <tr>
                       <th scope="col" className="px-3 py-2 font-medium">Keyword</th>
                       <th scope="col" className="px-3 py-2 font-medium">Context</th>
@@ -405,7 +405,7 @@ export default function IndexerApp() {
                   <tbody className="divide-y divide-black/[.06] dark:divide-white/[.1]">
                     {pageRows.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="px-3 py-6 text-center text-zinc-500">
+                        <td colSpan={4} className="px-3 py-6 text-center text-green-700/70 dark:text-green-400/70">
                           {searching ? "No lines contain every word." : "No entries yet."}
                         </td>
                       </tr>
@@ -415,9 +415,9 @@ export default function IndexerApp() {
                           key={e.id}
                           className={!searching && state.latest.has(e.id) ? "bg-amber-100 dark:bg-amber-400/15" : ""}
                         >
-                          <td className="px-3 py-2 align-top font-semibold">{e.keyword}</td>
-                          <td className="px-3 py-2 align-top text-zinc-600 dark:text-zinc-400">{e.context}</td>
-                          <td className="px-3 py-2 text-right align-top tabular-nums text-zinc-500">{e.line}</td>
+                          <td className="px-3 py-2 align-top font-semibold text-green-900 dark:text-green-200">{e.keyword}</td>
+                          <td className="px-3 py-2 align-top text-green-800/80 dark:text-green-300/80">{e.context}</td>
+                          <td className="px-3 py-2 text-right align-top tabular-nums text-green-700 dark:text-green-400">{e.line}</td>
                           <td className="max-w-48 px-3 py-2 align-top">
                             <EntryLink url={e.url} />
                           </td>
