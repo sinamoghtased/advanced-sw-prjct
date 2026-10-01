@@ -3,7 +3,6 @@ package edu.utdallas.quickdex.api;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import edu.utdallas.quickdex.Input;
-import edu.utdallas.quickdex.KwicEntry;
 import edu.utdallas.quickdex.MasterControl;
 import edu.utdallas.quickdex.Output;
 import edu.utdallas.quickdex.PlacedEntry;
@@ -26,7 +25,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -34,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -340,31 +337,6 @@ public final class EngineServer {
         }
     }
 
-    /**
-     * Lists every page in the index, grouped by line, when a search has no words. Each
-     * line's matches are all of its shifts; the line's own text is its unrotated shift (the
-     * one with the smallest id — see {@link edu.utdallas.quickdex.SearchEngine}).
-     */
-    private static WebOutputMedium.SearchResults browseAll(IndexSession session) {
-        List<KwicEntry> index = session.control.index();
-        Map<Integer, List<PlacedEntry>> byLine = new TreeMap<>();
-        for (int position = 0; position < index.size(); position++) {
-            KwicEntry entry = index.get(position);
-            byLine.computeIfAbsent(entry.lineNumber(), line -> new ArrayList<>())
-                    .add(new PlacedEntry(position, entry));
-        }
-        List<SearchResult> results = new ArrayList<>(byLine.size());
-        for (List<PlacedEntry> matches : byLine.values()) {
-            KwicEntry original = matches.stream()
-                    .min(Comparator.comparingInt(p -> p.entry().id()))
-                    .get()
-                    .entry();
-            results.add(new SearchResult(original.lineNumber(), original.url(), original.text(),
-                    false, matches, List.of()));
-        }
-        return new WebOutputMedium.SearchResults("", results);
-    }
-
     private void search(HttpExchange exchange) throws IOException {
         Map<String, String> params = query(exchange);
         IndexSession session = find(exchange, params.get("index"));
@@ -378,14 +350,8 @@ public final class EngineServer {
         long start = System.nanoTime();
         WebOutputMedium.SearchResults found;
         synchronized (session) {
-            if (words.isBlank()) {
-                // No search words: list every indexed page instead of nothing (FR9.0 only
-                // promises matches for real keywords; browsing is a separate, additive view).
-                found = browseAll(session);
-            } else {
-                session.control.search(words);
-                found = session.medium.takeResults();
-            }
+            session.control.search(words);
+            found = session.medium.takeResults();
         }
         long micros = (System.nanoTime() - start) / 1_000;
 

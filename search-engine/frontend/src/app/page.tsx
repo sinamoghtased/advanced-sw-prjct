@@ -50,9 +50,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
   const index = first(params.index);
   const page = Math.max(1, Number.parseInt(first(params.page), 10) || 1);
 
-  // No index: show the landing page. With an index but no query: browse every page in it,
-  // instead of an empty search box, since there's no obvious default word to search for.
-  if (query === "" && !index) {
+  if (query === "") {
     return <Home index={index} />;
   }
 
