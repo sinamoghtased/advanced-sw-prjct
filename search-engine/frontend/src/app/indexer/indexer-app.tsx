@@ -17,7 +17,7 @@ import {
 } from "@/services/engine/client";
 
 const PAGE_SIZE = 25;
-const SLOW_MOTION_DELAY = 300;
+const SLOW_MOTION_DELAY = 1500;
 
 type LineShifts = { line: number; url: string | null; shifts: Entry[] };
 
