@@ -6,7 +6,7 @@
 
 **Date:** 26 September 2026
 
-**Status:** Interim I requirements and selected architecture; prototype implementation is in this repository.
+**Status:** Interim I architecture with requirements revised for the Phase I final submission on 15 October 2026; prototype implementation is in this repository.
 
 ## 1. Overview
 
@@ -21,22 +21,38 @@ shows input, circular shifts, and alphabetized output, updating after each line.
 | FR002 | The system shall accept Unicode text and preserve each word's characters. |
 | FR003 | The system shall accept between 1 and 10,000 characters of nonblank input. |
 | FR004 | The system shall generate all circular shifts of each input line. |
-| FR005 | The system shall display the circular shifts before alphabetization. |
+| FR005 | The system shall display circular shifts in generation order alongside the alphabetized index. |
 | FR006 | The system shall display the shifts in ascending alphabetical order, ignoring case. |
 | FR007 | The system shall display the input alongside the circular shifts and alphabetized output. |
 | FR013 | The system shall update the displayed results after each line, retaining results from earlier lines. |
+| FR014 | The system shall retrieve pages from the KWIC index using case-insensitive keyword-prefix matching. |
+| FR015 | The system shall rank search results by relevance and display matching index entries and available page links. |
+| FR016 | The system shall suggest completions of the search while the user types. |
+| FR017 (optional) | The system shall support plain-text and CSV export through its API and command-line interface. |
+
+FR008–FR012 are listed in Section 4.2. Index noise-word filtering and live web sources remain outside the Phase I scope.
+
+### Input and search rules
+
+- Whitespace separates words. A leading HTTP(S) URL, or otherwise a trailing HTTP(S) URL, is stored as metadata and excluded from circular shifts.
+- Blank and URL-only lines are skipped. A submission with no indexed words is rejected. The input limit counts Unicode code points, including whitespace.
+- Indexed words retain their characters, case, and punctuation. Whitespace separators are normalized in displayed shifts.
+- Duplicate words and lines are retained. A line with n words after URL extraction produces n shifts. Equal case-insensitive sort keys retain generation order.
+- Search uses distinct lowercase query terms and ignores common words unless all query terms are common words. It returns pages matching all terms when available; otherwise it returns pages matching the greatest positive number of terms and identifies missing terms.
+- Results are ranked by exact title, phrase-prefix match, whole-word count, phrase-prefix match at the beginning of the original line, case-insensitive alphabetical original text, then source-line number. Phrase matching uses circular shifts and may wrap from the end of a line to its beginning.
+- Prefix matching preserves punctuation: `architecture` matches `architecture,` but not `(architecture)`; `architecture,` does not match `architecture`. Title and whole-word ranking comparisons strip surrounding punctuation.
 
 ## 3. Non-functional requirements
 
 | ID | Quality | Requirement |
 | --- | --- | --- |
-| NFR001 | Understandability | The system's structure and processing flow shall be easy to understand. |
+| NFR001 | Understandability | The system shall document each component's responsibility, public operations, and place in the processing flow. |
 | NFR002 | Portability | The system shall work across operating systems and web browsers. |
-| NFR003 | Enhanceability | The system shall support the addition of new features. |
+| NFR003 | Enhanceability | The system shall support new features through documented component interfaces. |
 | NFR004 | Reusability | The KWIC engine shall be reusable independently of the web interface. |
 | NFR005 | Performance | The system shall generate and display results quickly. |
 | NFR006 | Usability | The system shall be easy for a first-time user to operate. |
-| NFR007 | Responsiveness | The system shall provide timely feedback during processing. |
+| NFR007 | Responsiveness | The system shall display processing status within 1 second of submission and update the index during processing. |
 | NFR008 | Adaptability | Changes shall remain localized to the affected components. |
 
 ## 4. Traceability to refined requirements
@@ -61,6 +77,18 @@ shows input, circular shifts, and alphabetized output, updating after each line.
 | NFR007 | FR011 | The system shall display a processing status. |
 | NFR006, NFR007 | FR012 | The system shall report input or processing errors and allow the user to retry. |
 
+### 4.3 Acceptance criteria for revised NFRs
+
+These checks are planned acceptance criteria; their results have not yet been recorded.
+
+| NFR | Acceptance check |
+| --- | --- |
+| NFR001 | Inspect every component for a stated responsibility and every public operation for a descriptive name, parameters, and return values. Confirm that the processing diagram shows all component interactions. |
+| NFR003 | Walk through adding index noise-word filtering: identify affected components and interfaces, explain how filtered shifts reach Alphabetizer, and specify regression checks for ordering, source-line references, and incremental updates. Preserve the documented contracts of unaffected components. |
+| NFR007 | On localhost with slow motion disabled, submit 100 copies of `alpha beta gamma delta epsilon zeta eta theta iota kappa`, separated by newlines (5,599 code points, no trailing newline). Record the browser and machine. Verify visible status within 1 second, one server update per processed line, and intermediate browser results. Record server delivery and browser display separately; browser updates may combine lines. |
+
+For NFR003, Alphabetizer currently reads CircularShift directly. A filter therefore needs an explicit integration design; adding it is not assumed to require only one new component or one controller change.
+
 ## 5. Architectural style and components
 
 **Style:** object-oriented / Abstract Data Types (ADT).
@@ -79,6 +107,7 @@ SAS = Software Architecture Specification.
 | SAS006 | Alphabetizer | Merge new shifts into the sorted index |
 | SAS007 | Output | Retrieve and display results |
 | SAS008 | Output Medium | Present results to the user |
+| SAS009 | SearchEngine | Find and rank pages and suggest query completions |
 
 ## 6. Connections
 
@@ -120,7 +149,7 @@ static `main(String[])` method is the command-line launcher.
 ![Team's Quickdex ADT architecture with SAS IDs](Quickdex-architecture-SAS.png)
 
 Green = public methods; orange = private methods; black arrows = calls; red = system I/O.
-SAS009 (Search Engine) is for later work.
+SAS009 (SearchEngine) supports FR014–FR016. It obtains the sorted index through `Output.getOutput()`; MasterControl coordinates search and the web interface supplies queries and displays results.
 
 ## 9. Requirements-to-architecture traceability
 
@@ -141,14 +170,18 @@ SAS009 (Search Engine) is for later work.
 | FR011 | SAS001, SAS003, SAS008 |
 | FR012 | SAS001, SAS003, SAS008 |
 | FR013 | SAS003, SAS005, SAS006, SAS007, SAS008 |
+| FR014 | SAS001, SAS007, SAS008, SAS009 |
+| FR015 | SAS007, SAS008, SAS009 |
+| FR016 | SAS001, SAS008, SAS009 |
+| FR017 (optional) | SAS003, SAS007 |
 
 ### 9.2 Non-functional requirements
 
 | NFRs | Architectural elements |
 | --- | --- |
-| NFR001 | SAS001–SAS008 |
+| NFR001 | SAS001–SAS009 |
 | NFR002, NFR009 | SAS001, SAS008 |
-| NFR003 | SAS003–SAS007 |
+| NFR003 | SAS003–SAS007, SAS009 |
 | NFR004, NFR012 | SAS002–SAS006 |
 | NFR005, NFR010 | SAS002–SAS008 |
 | NFR006, NFR011 | SAS001, SAS008 |
