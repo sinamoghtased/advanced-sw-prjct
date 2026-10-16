@@ -165,7 +165,7 @@ In = Input/LineStorage; CS = CircularShift; Alpha = Alphabetizer; Out = Output.
 | Criterion | Reference In | Reference CS | Reference Alpha | Reference Out | Quickdex In | Quickdex CS | Quickdex Alpha | Quickdex Out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Understandability | + | + | + | + | ++ | ++ | ++ | ++ |
-| Algorithm modifiability | + | + | + | + | + | + | + | + |
+| Algorithm modifiability | + | + | + | + | + | + | ++ | + |
 | Data modifiability | ++ | + | + | 0 | ++ | + | + | 0 |
 | Enhanceability | 0 | + | + | 0 | 0 | + | + | 0 |
 | Reusability | + | + | + | 0 | + | + | + | 0 |
@@ -173,7 +173,7 @@ In = Input/LineStorage; CS = CircularShift; Alpha = Alphabetizer; Out = Output.
 | Performance: processing overhead | 0 | − | − | + | 0 | − | − | − |
 | Performance: memory economy | 0 | − | − | 0 | 0 | − | − | 0 |
 | Portability: OS/browser | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **Component total** | **+5** | **+3** | **+3** | **+2** | **+6** | **+5** | **+5** | **+3** |
+| **Component total** | **+5** | **+3** | **+3** | **+2** | **+6** | **+5** | **+6** | **+3** |
 
-**Architecture totals:** reference **+13**, Quickdex **+19**.
+**Architecture totals:** reference **+13**, Quickdex **+20**.
 Totals summarize equally weighted design judgments for this scenario; they are not benchmarks.
