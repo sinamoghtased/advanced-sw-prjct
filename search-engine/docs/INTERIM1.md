@@ -85,7 +85,7 @@ These checks are planned acceptance criteria; their results have not yet been re
 | --- | --- |
 | NFR001 | Inspect every component for a stated responsibility and every public operation for a descriptive name, parameters, and return values. Confirm that the processing diagram shows all component interactions. |
 | NFR003 | Walk through adding index noise-word filtering: identify affected components and interfaces, explain how filtered shifts reach Alphabetizer, and specify regression checks for ordering, source-line references, and incremental updates. Preserve the documented contracts of unaffected components. |
-| NFR007 | On localhost with slow motion disabled, submit 100 copies of `alpha beta gamma delta epsilon zeta eta theta iota kappa`, separated by newlines (5,599 code points, no trailing newline). Record the browser and machine. Verify visible status within 1 second, one server update per processed line, and intermediate browser results. Record server delivery and browser display separately; browser updates may combine lines. |
+| NFR007 | On localhost with slow motion disabled, submit 100 copies of `alpha beta gamma delta epsilon zeta eta theta iota kappa`, separated by newlines (5,699 code points, no trailing newline). Record the browser and machine. Verify visible status within 1 second, one server update per processed line, and intermediate browser results. Record server delivery and browser display separately; browser updates may combine lines. |
 
 For NFR003, Alphabetizer currently reads CircularShift directly. A filter therefore needs an explicit integration design; adding it is not assumed to require only one new component or one controller change.
 
