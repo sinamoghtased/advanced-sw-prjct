@@ -150,7 +150,11 @@ public final class EngineServer {
             QueueInputMedium queue = new QueueInputMedium();
             IndexSession web = new IndexSession(new MasterControl(queue, medium), medium);
             web.queue = queue;
-            List<String> lines = Arrays.asList(Input.splitLines(corpus));
+            List<String> lines = Arrays.stream(Input.splitLines(corpus)).filter(Input::isPage).toList();
+            if (lines.size() < Input.splitLines(corpus).length) {
+                LOG.log(Level.WARNING, "skipped {0} corpus lines that are not valid pages",
+                        Input.splitLines(corpus).length - lines.size());
+            }
             for (String line : lines) {
                 String url = Input.urlOf(line);
                 if (url != null) {
@@ -235,11 +239,16 @@ public final class EngineServer {
         }
         IndexSession web = webIndex;
         int added = 0;
+        int rejected = 0;
         synchronized (web) {
             List<String> fresh = new ArrayList<>();
             for (String line : Input.splitLines(text)) {
+                if (!Input.isPage(line)) {
+                    rejected++;
+                    continue;
+                }
                 String url = Input.urlOf(line);
-                if (url != null && web.pages + fresh.size() < MAX_WEB_PAGES && web.urls.add(url)) {
+                if (web.pages + fresh.size() < MAX_WEB_PAGES && web.urls.add(url)) {
                     fresh.add(line);
                 }
             }
@@ -252,7 +261,8 @@ public final class EngineServer {
             }
         }
         send(exchange, 200, "application/json",
-                "{\"added\":" + added + ",\"pages\":" + web.pages + ",\"entries\":" + web.entries + "}");
+                "{\"added\":" + added + ",\"pages\":" + web.pages + ",\"entries\":" + web.entries
+                        + ",\"rejected\":" + rejected + "}");
     }
 
     private void index(HttpExchange exchange) throws IOException {

@@ -120,6 +120,21 @@ class EngineServerTest {
     }
 
     @Test
+    void rejectsPagesWithoutAValidUrlOrDescription() throws Exception {
+        String pages = "https://example.gov Gnu habitat\n"
+                + "https://example.org/nodescription\n"
+                + "no url on this line\n"
+                + "https://example.net/okapi Okapi: a forest giraffe\n";
+        HttpResponse<String> added = client.send(HttpRequest.newBuilder(uri("/pages"))
+                .POST(HttpRequest.BodyPublishers.ofString(pages, StandardCharsets.UTF_8)).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, added.statusCode());
+        assertTrue(added.body().startsWith("{\"added\":1,"), added.body());
+        assertTrue(added.body().endsWith("\"rejected\":3}"), added.body());
+        assertTrue(get("/search?q=gnu").body().contains("\"total\":0,"));
+    }
+
+    @Test
     void pagesThroughResults() throws Exception {
         String all = get("/search?q=software&limit=1000").body();
         String second = get("/search?q=software&offset=1&limit=1").body();
