@@ -48,8 +48,9 @@ public final class MasterControl {
         this.loggingMedium = new LoggingMedium(outputMedium);
         this.input = new Input(inputMedium, lineStorage);
         this.circularShift = new CircularShift(lineStorage);
-        this.alphabetizer = new Alphabetizer(circularShift, order);
-        this.output = new Output(alphabetizer, circularShift, loggingMedium);
+        NoiseFilter filter = NoiseFilter.standard();
+        this.alphabetizer = new Alphabetizer(circularShift, order, filter);
+        this.output = new Output(alphabetizer, circularShift, loggingMedium, filter);
         this.searchEngine = new SearchEngine(output, loggingMedium);
     }
 
@@ -108,13 +109,14 @@ public final class MasterControl {
             return;
         }
         List<PlacedEntry> inserted = loggingMedium.lastInserted;
+        int lineNumber = loggingMedium.lastLine;
         String shifts = inserted.stream()
                 .map(PlacedEntry::entry)
                 .sorted((a, b) -> Integer.compare(a.id(), b.id()))
                 .map(e -> "\"" + e.text() + "\"")
                 .collect(Collectors.joining(", "));
         LOG.log(Level.INFO, "input line {0} (line {1}): {2} shifts [{3}]; index size {4}; {5} ms",
-                inputLine, inserted.get(0).entry().lineNumber(), inserted.size(), shifts,
+                inputLine, lineNumber, inserted.size(), shifts,
                 loggingMedium.lastSize, String.format(Locale.ROOT, "%.3f", (System.nanoTime() - lineStart) / 1e6));
     }
 
@@ -138,6 +140,7 @@ public final class MasterControl {
         private final OutputMedium target;
         private List<PlacedEntry> lastInserted = List.of();
         private int lastSize;
+        private int lastLine;
 
         LoggingMedium(OutputMedium target) {
             this.target = target;
@@ -145,10 +148,11 @@ public final class MasterControl {
 
         @Override
         public void displayOutput(int lineNumber, List<PlacedEntry> inserted,
-                List<KwicEntry> generated, int indexSize) {
+                List<KwicEntry> generated, List<KwicEntry> filtered, int indexSize) {
             lastInserted = inserted;
+            lastLine = lineNumber;
             lastSize = indexSize;
-            target.displayOutput(lineNumber, inserted, generated, indexSize);
+            target.displayOutput(lineNumber, inserted, generated, filtered, indexSize);
         }
 
         @Override
@@ -195,7 +199,7 @@ public final class MasterControl {
         OutputMedium console = new OutputMedium() {
             @Override
             public void displayOutput(int lineNumber, List<PlacedEntry> inserted,
-                    List<KwicEntry> generated, int indexSize) {
+                    List<KwicEntry> generated, List<KwicEntry> filtered, int indexSize) {
                 // The console shows only the final index.
             }
 

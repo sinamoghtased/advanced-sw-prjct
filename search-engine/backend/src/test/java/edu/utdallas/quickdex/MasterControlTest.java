@@ -50,8 +50,8 @@ class MasterControlTest {
         MasterControl control = new MasterControl(new TextInputMedium("Descent of Man"), new RecordingMedium());
         control.run();
         List<KwicEntry> index = control.index();
-        assertEquals(List.of("Descent", "Man", "of"), index.stream().map(KwicEntry::keyword).toList());
-        assertEquals(List.of("of Man", "Descent of", "Man Descent"), index.stream().map(KwicEntry::context).toList());
+        assertEquals(List.of("Descent", "Man"), index.stream().map(KwicEntry::keyword).toList());
+        assertEquals(List.of("of Man", "Descent of"), index.stream().map(KwicEntry::context).toList());
     }
 
     @Test
@@ -61,13 +61,13 @@ class MasterControlTest {
 
         assertEquals(2, summary.linesIndexed());
         assertEquals(1, summary.linesSkipped());
-        assertEquals(7, summary.shifts());
+        assertEquals(4, summary.shifts());
         String text = logged.toString();
-        assertTrue(text.contains("input line 1 (line 1): 3 shifts [\"Descent of Man\", \"of Man Descent\", "
-                + "\"Man Descent of\"]; index size 3;"), text);
+        assertTrue(text.contains("input line 1 (line 1): 2 shifts [\"Descent of Man\", "
+                + "\"Man Descent of\"]; index size 2;"), text);
         assertTrue(text.contains("input line 2: skipped (blank)"), text);
-        assertTrue(text.contains("input line 3 (line 2): 4 shifts"), text);
-        assertTrue(text.contains("done: 2 lines indexed, 1 skipped, 7 shifts"), text);
+        assertTrue(text.contains("input line 3 (line 2): 2 shifts"), text);
+        assertTrue(text.contains("done: 2 lines indexed, 1 skipped, 4 shifts"), text);
         assertTrue(text.contains("1. Ascent | of Man The | line 2"), text);
     }
 

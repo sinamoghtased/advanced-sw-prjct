@@ -31,6 +31,14 @@ public final class Alphabetizer {
 
     private final CircularShift shifts;
     private final Order order;
+    private final NoiseFilter filter;
+
+    /** How many of the generated shifts have been read, kept or dropped. */
+    private int consumed;
+    private int lastLine = -1;
+
+    /** The first shift of each line (its original word order), kept even when it is filtered out. */
+    private final Map<Integer, KwicEntry> originals = new HashMap<>();
 
     /** This component's own copy of every shift, in alphabetical order. */
     private List<SortedShift> sorted = new ArrayList<>();
@@ -43,22 +51,46 @@ public final class Alphabetizer {
     }
 
     public Alphabetizer(CircularShift shifts, Order order) {
+        this(shifts, order, NoiseFilter.NONE);
+    }
+
+    public Alphabetizer(CircularShift shifts, Order order, NoiseFilter filter) {
         this.shifts = shifts;
         this.order = order;
+        this.filter = filter;
     }
 
     /**
-     * Reads the shifts generated since the last call and merges them into the sorted index.
+     * Reads the shifts generated since the last call and merges them into the sorted index,
+     * leaving out the shifts that start with a noise word (FR018).
      */
     public void setShifts() {
-        int first = sorted.size();
         int last = shifts.getShiftCount();
         Map<String, int[]> keyCache = new HashMap<>();
-        List<SortedShift> incoming = new ArrayList<>(last - first);
-        for (int shift = first; shift < last; shift++) {
-            incoming.add(copy(shift, keyCache));
+        List<SortedShift> incoming = new ArrayList<>(last - consumed);
+        for (int shift = consumed; shift < last; shift++) {
+            SortedShift copy = copy(shift, keyCache);
+            int line = shifts.getShiftedLine(shift);
+            if (line != lastLine) {
+                originals.put(copy.entry.lineNumber(), copy.entry);
+                lastLine = line;
+            }
+            if (filter.keeps(copy.entry.keyword())) {
+                incoming.add(copy);
+            }
         }
+        consumed = last;
         alphabetize(incoming);
+    }
+
+    /**
+     * Returns a line's first shift, which has the words in their original order, even if the
+     * index left it out as a noise-word shift.
+     *
+     * @param lineNumber the line's number, counting from 1 as {@link KwicEntry#lineNumber()} does
+     */
+    public KwicEntry getLineOriginal(int lineNumber) {
+        return originals.get(lineNumber);
     }
 
     /** Returns the number of shifts in the sorted index. */

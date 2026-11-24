@@ -42,7 +42,7 @@ final class WebOutputMedium implements OutputMedium {
 
     @Override
     public void displayOutput(int lineNumber, List<PlacedEntry> inserted,
-            List<KwicEntry> generated, int indexSize) {
+            List<KwicEntry> generated, List<KwicEntry> filtered, int indexSize) {
         StringBuilder json = new StringBuilder(256 * inserted.size())
                 .append("{\"type\":\"update\",\"line\":").append(lineNumber)
                 .append(",\"size\":").append(indexSize)

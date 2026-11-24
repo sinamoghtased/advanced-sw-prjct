@@ -38,11 +38,8 @@ public final class SearchEngine {
 
     private static final Pattern WHITESPACE = Pattern.compile("(?U)\\s+");
 
-    /** Words too common to narrow a search. */
-    static final Set<String> STOP_WORDS = Set.of(
-            "a", "an", "and", "are", "as", "at", "be", "by", "can", "do", "does", "for", "from",
-            "how", "i", "in", "is", "it", "me", "my", "of", "on", "or", "that", "the", "this", "to",
-            "was", "what", "when", "where", "which", "who", "why", "with", "you", "your");
+    /** Words too common to narrow a search; the same words the index leaves out as noise. */
+    static final Set<String> STOP_WORDS = NoiseFilter.NOISE_WORDS;
 
     private final Output output;
     private final OutputMedium medium;
@@ -83,7 +80,7 @@ public final class SearchEngine {
         // A line's shifts have consecutive ids, starting with its original word order.
         Map<Integer, Integer> firstId = new HashMap<>();
         for (KwicEntry entry : index) {
-            firstId.merge(entry.lineNumber(), entry.id(), Math::min);
+            firstId.computeIfAbsent(entry.lineNumber(), n -> output.getLineOriginal(n).id());
         }
 
         Map<String, Integer> counts = new LinkedHashMap<>();
@@ -179,11 +176,8 @@ public final class SearchEngine {
         }
 
         // Pass 2: recover each matching line's original text, its first-generated shift.
-        for (KwicEntry entry : index) {
-            LineMatch line = lines.get(entry.lineNumber());
-            if (line != null && (line.original == null || entry.id() < line.original.id())) {
-                line.original = entry;
-            }
+        for (Map.Entry<Integer, LineMatch> line : lines.entrySet()) {
+            line.getValue().original = output.getLineOriginal(line.getKey());
         }
 
         for (LineMatch line : lines.values()) {

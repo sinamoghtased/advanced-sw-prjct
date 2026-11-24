@@ -67,11 +67,11 @@ class EngineServerTest {
         assertEquals(4, events.size(), response.body());
         assertTrue(events.get(0).startsWith("{\"type\":\"start\""), events.get(0));
         assertTrue(events.get(0).contains("\"lines\":3"), events.get(0));
-        assertTrue(events.get(1).startsWith("{\"type\":\"update\",\"line\":1,\"size\":3,"), events.get(1));
+        assertTrue(events.get(1).startsWith("{\"type\":\"update\",\"line\":1,\"size\":2,"), events.get(1));
         assertTrue(events.get(1).contains("\"keyword\":\"Descent\",\"context\":\"of Man\",\"url\":\"https://a.example\""),
                 events.get(1));
-        assertTrue(events.get(2).startsWith("{\"type\":\"update\",\"line\":2,\"size\":7,"), events.get(2));
-        assertTrue(events.get(3).startsWith("{\"type\":\"done\",\"linesIndexed\":2,\"linesSkipped\":1,\"shifts\":7"),
+        assertTrue(events.get(2).startsWith("{\"type\":\"update\",\"line\":2,\"size\":4,"), events.get(2));
+        assertTrue(events.get(3).startsWith("{\"type\":\"done\",\"linesIndexed\":2,\"linesSkipped\":1,\"shifts\":4"),
                 events.get(3));
     }
 
@@ -82,7 +82,7 @@ class EngineServerTest {
         assertEquals(200, response.statusCode());
         String body = response.body();
         assertTrue(body.startsWith("{\"query\":\"MA\",\"total\":2,\"offset\":0,"), body);
-        assertTrue(body.contains("\"pages\":2,\"entries\":7,\"results\":[{\"line\":1,\"url\":null,"
+        assertTrue(body.contains("\"pages\":2,\"entries\":4,\"results\":[{\"line\":1,\"url\":null,"
                 + "\"text\":\"Descent of Man\",\"phrase\":true,\"missing\":[],\"matches\":[{\"pos\":2,"), body);
         assertTrue(body.contains("\"keyword\":\"Man\",\"context\":\"Descent of\""), body);
     }
@@ -91,7 +91,7 @@ class EngineServerTest {
     void searchesTheBuiltInWebIndexByDefault() throws Exception {
         HttpResponse<String> stats = get("/stats");
         assertEquals(200, stats.statusCode());
-        assertTrue(stats.body().matches("\\{\"pages\":\\d{3},\"entries\":\\d{4}\\}"), stats.body());
+        assertTrue(stats.body().matches("\\{\"pages\":\\d{3},\"entries\":\\d{3,4}\\}"), stats.body());
 
         String body = get("/search?q=" + URLEncoder.encode("merge sort", StandardCharsets.UTF_8)).body();
         assertTrue(body.contains("\"url\":\"https://en.wikipedia.org/wiki/Merge_sort\""), body);

@@ -6,7 +6,8 @@ import java.util.List;
 /** An Output Medium that records what it is asked to show, for tests. */
 final class RecordingMedium implements OutputMedium {
 
-    record Update(int lineNumber, List<PlacedEntry> inserted, List<KwicEntry> generated, int indexSize) {
+    record Update(int lineNumber, List<PlacedEntry> inserted, List<KwicEntry> generated,
+            List<KwicEntry> filtered, int indexSize) {
     }
 
     final List<Update> updates = new ArrayList<>();
@@ -16,8 +17,8 @@ final class RecordingMedium implements OutputMedium {
 
     @Override
     public void displayOutput(int lineNumber, List<PlacedEntry> inserted,
-            List<KwicEntry> generated, int indexSize) {
-        updates.add(new Update(lineNumber, inserted, generated, indexSize));
+            List<KwicEntry> generated, List<KwicEntry> filtered, int indexSize) {
+        updates.add(new Update(lineNumber, inserted, generated, filtered, indexSize));
         // Rebuild the index the way the web page does: insert in ascending position order.
         for (PlacedEntry p : inserted) {
             shown.add(p.position(), p.entry());

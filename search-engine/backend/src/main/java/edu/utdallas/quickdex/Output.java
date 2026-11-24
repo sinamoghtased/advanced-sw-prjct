@@ -27,6 +27,7 @@ public final class Output {
     private final Alphabetizer alphabetizer;
     private final CircularShift circularShift;
     private final OutputMedium medium;
+    private final NoiseFilter filter;
     private final List<KwicEntry> index = new IndexView();
 
     /** The index size when entries were last shown. */
@@ -34,9 +35,21 @@ public final class Output {
     private int shownGenerated;
 
     public Output(Alphabetizer alphabetizer, CircularShift circularShift, OutputMedium medium) {
+        this(alphabetizer, circularShift, medium, NoiseFilter.NONE);
+    }
+
+    /** The filter must be the one the Alphabetizer uses, so the filtered shifts match the index. */
+    public Output(Alphabetizer alphabetizer, CircularShift circularShift, OutputMedium medium,
+            NoiseFilter filter) {
         this.alphabetizer = alphabetizer;
         this.circularShift = circularShift;
         this.medium = medium;
+        this.filter = filter;
+    }
+
+    /** Returns a line's shift in its original word order, even if the index left it out. */
+    public KwicEntry getLineOriginal(int lineNumber) {
+        return alphabetizer.getLineOriginal(lineNumber);
     }
 
     /**
@@ -46,7 +59,8 @@ public final class Output {
      */
     public List<KwicEntry> getOutput() {
         int size = alphabetizer.getShiftCount();
-        if (size > shown) {
+        // A line made only of noise-word shifts adds nothing to the index but is still reported.
+        if (size > shown || circularShift.getShiftCount() > shownGenerated) {
             int[] positions = alphabetizer.getNewShiftPositions();
             List<PlacedEntry> inserted = new ArrayList<>(positions.length);
             for (int position : positions) {
@@ -86,7 +100,8 @@ public final class Output {
 
     private void displayOutput(List<PlacedEntry> inserted, List<KwicEntry> generated, int size) {
         int lineNumber = generated.get(0).lineNumber();
-        medium.displayOutput(lineNumber, List.copyOf(inserted), generated, size);
+        List<KwicEntry> filtered = generated.stream().filter(e -> filter.keeps(e.keyword())).toList();
+        medium.displayOutput(lineNumber, List.copyOf(inserted), generated, filtered, size);
     }
 
     /** Formats the whole index as a file (FR11.0). User text is never treated as code. */

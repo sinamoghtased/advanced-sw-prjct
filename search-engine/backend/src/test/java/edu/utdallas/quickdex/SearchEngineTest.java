@@ -104,7 +104,8 @@ class SearchEngineTest {
     @Test
     void ignoresCommonWords() {
         assertEquals(List.of("Man in the Middle", "Descent of Man", "The Ascent of Man"), search("the man"));
-        assertEquals(List.of("The Ascent of Man", "Man in the Middle"), search("the"));
+        // Shifts that start with a noise word are not in the index, so a query of only those finds nothing.
+        assertEquals(List.of(), search("the"));
     }
 
     @Test
