@@ -52,6 +52,9 @@ import java.util.function.Consumer;
  *   <li>{@code GET /suggest?q=TYPED} suggests searches that complete what the user typed.</li>
  *   <li>{@code POST /pages} with lines of "URL description" as the body adds new pages to the
  *       web index, one line at a time; pages whose URL is already indexed are skipped.</li>
+ *   <li>{@code DELETE /pages?url=URL} deletes an out-of-date page, its description and its
+ *       shifts. {@code POST /bid} also changes things, so both need the admin key in the
+ *       {@code X-Admin-Key} header when the server has one ({@code QUICKDEX_ADMIN_KEY}).</li>
  *   <li>{@code GET /stats} returns the number of pages and entries in an index.</li>
  *   <li>{@code POST /index} with the input text as the body builds a new index and streams an
  *       update after every line, as newline-delimited JSON. The optional {@code delay}
@@ -80,6 +83,8 @@ public final class EngineServer {
 
     private final HttpServer server;
     private final IndexSession webIndex;
+    /** The key that admin actions need, or null if the server is open (local development). */
+    private final String adminKey;
     private final Map<String, IndexSession> indexes = new LinkedHashMap<>(16, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<String, IndexSession> eldest) {
@@ -105,13 +110,14 @@ public final class EngineServer {
         }
     }
 
-    private EngineServer(HttpServer server, IndexSession webIndex) {
+    private EngineServer(HttpServer server, IndexSession webIndex, String adminKey) {
         this.server = server;
         this.webIndex = webIndex;
+        this.adminKey = adminKey == null || adminKey.isBlank() ? null : adminKey;
         server.createContext("/health", this::health);
         server.createContext("/stats", this::stats);
         server.createContext("/suggest", this::suggest);
-        server.createContext("/pages", this::addPages);
+        server.createContext("/pages", this::pages);
         server.createContext("/index", this::index);
         server.createContext("/search", this::search);
         server.createContext("/click", this::click);
@@ -122,8 +128,13 @@ public final class EngineServer {
 
     /** Builds the web index and starts a server on {@code port}; port 0 picks a free port. */
     public static EngineServer start(int port) throws IOException {
+        return start(port, System.getenv("QUICKDEX_ADMIN_KEY"));
+    }
+
+    /** Like {@link #start(int)}, with admin actions locked behind {@code adminKey} (open if null or blank). */
+    public static EngineServer start(int port, String adminKey) throws IOException {
         IndexSession web = buildWebIndex(loadCorpus());
-        EngineServer engine = new EngineServer(HttpServer.create(new InetSocketAddress(port), 0), web);
+        EngineServer engine = new EngineServer(HttpServer.create(new InetSocketAddress(port), 0), web, adminKey);
         engine.server.start();
         LOG.log(Level.INFO, "web index ready: {0} pages, {1} entries", web.pages, web.entries);
         return engine;
@@ -229,11 +240,58 @@ public final class EngineServer {
     }
 
     /** Adds pages fetched from the web to the web index, one line at a time. */
-    private void addPages(HttpExchange exchange) throws IOException {
-        if (!"POST".equals(exchange.getRequestMethod())) {
-            send(exchange, 405, "application/json", Json.error("Use POST to add pages."));
+    private void pages(HttpExchange exchange) throws IOException {
+        switch (exchange.getRequestMethod()) {
+            case "POST" -> addPages(exchange);
+            case "DELETE" -> deletePage(exchange);
+            default -> send(exchange, 405, "application/json", Json.error("Use POST to add pages or DELETE to delete one."));
+        }
+    }
+
+    /** Deletes an out-of-date page, its description and its shifts (FR023). */
+    private void deletePage(HttpExchange exchange) throws IOException {
+        Map<String, String> params = query(exchange);
+        if (!isAdmin(exchange)) {
+            send(exchange, 401, "application/json", Json.error("Deleting a page needs the admin key."));
             return;
         }
+        IndexSession session = find(exchange, params.get("index"), "DELETE");
+        String url = params.get("url");
+        if (session == null) {
+            return;
+        }
+        if (url == null || url.isBlank()) {
+            send(exchange, 400, "application/json", Json.error("Say which page to delete, by its URL."));
+            return;
+        }
+        int removed;
+        synchronized (session) {
+            removed = session.control.delete(url);
+            if (removed > 0) {
+                session.urls.remove(url);
+                session.pages -= removed;
+                session.entries = session.control.index().size();
+            }
+        }
+        if (removed == 0) {
+            send(exchange, 404, "application/json", Json.error("No indexed page has this URL."));
+            return;
+        }
+        send(exchange, 200, "application/json",
+                "{\"deleted\":" + removed + ",\"pages\":" + session.pages + ",\"entries\":" + session.entries + "}");
+    }
+
+    /** Whether the request carries the admin key, or the server has none. */
+    private boolean isAdmin(HttpExchange exchange) {
+        if (adminKey == null) {
+            return true;
+        }
+        String given = exchange.getRequestHeaders().getFirst("X-Admin-Key");
+        return given != null && java.security.MessageDigest.isEqual(
+                given.getBytes(StandardCharsets.UTF_8), adminKey.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private void addPages(HttpExchange exchange) throws IOException {
         byte[] bytes = exchange.getRequestBody().readNBytes(MAX_PAGE_BATCH_BYTES + 1);
         String text = new String(bytes, StandardCharsets.UTF_8);
         Optional<String> problem = bytes.length > MAX_PAGE_BATCH_BYTES
@@ -503,6 +561,10 @@ public final class EngineServer {
     /** Sets what a page bids to be listed first when results are ordered by bid (FR030). */
     private void bid(HttpExchange exchange) throws IOException {
         Map<String, String> params = query(exchange);
+        if (!isAdmin(exchange)) {
+            send(exchange, 401, "application/json", Json.error("Setting a bid needs the admin key."));
+            return;
+        }
         IndexSession session = find(exchange, params.get("index"), "POST");
         String url = params.get("url");
         if (session == null) {

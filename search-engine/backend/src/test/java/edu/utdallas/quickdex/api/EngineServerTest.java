@@ -159,6 +159,58 @@ class EngineServerTest {
         assertEquals(400, postTo("/pages?bid=-1", "https://x.example.org X page").statusCode());
     }
 
+    private static HttpResponse<String> delete(String path, String adminKey) throws Exception {
+        HttpRequest.Builder request = HttpRequest.newBuilder(path.startsWith("http") ? URI.create(path) : uri(path))
+                .DELETE();
+        if (adminKey != null) {
+            request.header("X-Admin-Key", adminKey);
+        }
+        return client.send(request.build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    @Test
+    void deletesAnOutOfDatePageAndItsShifts() throws Exception {
+        String url = "https://dodo.example.org/bird";
+        assertEquals(200, postTo("/pages", url + " Dodo: an extinct flightless bird\n").statusCode());
+        assertTrue(get("/search?q=dodo").body().contains("\"total\":1,"));
+        String before = get("/stats").body();
+
+        HttpResponse<String> deleted = delete("/pages?url=" + URLEncoder.encode(url, StandardCharsets.UTF_8), null);
+        assertEquals(200, deleted.statusCode());
+        assertTrue(deleted.body().startsWith("{\"deleted\":1,"), deleted.body());
+        assertTrue(get("/search?q=dodo").body().contains("\"total\":0,"));
+        assertTrue(!get("/stats").body().equals(before));
+
+        assertEquals(404, delete("/pages?url=" + URLEncoder.encode(url, StandardCharsets.UTF_8), null).statusCode());
+        assertEquals(400, delete("/pages", null).statusCode());
+        // The same URL can be added again after it was deleted.
+        assertTrue(postTo("/pages", url + " Dodo is back\n").body().startsWith("{\"added\":1,"));
+    }
+
+    @Test
+    void adminActionsNeedTheKeyWhenTheServerHasOne() throws Exception {
+        EngineServer locked = EngineServer.start(0, "s3cret");
+        try {
+            String base = "http://localhost:" + locked.port();
+            String url = URLEncoder.encode("https://en.wikipedia.org/wiki/Merge_sort", StandardCharsets.UTF_8);
+            assertEquals(401, delete(base + "/pages?url=" + url, null).statusCode());
+            assertEquals(401, delete(base + "/pages?url=" + url, "wrong").statusCode());
+            HttpResponse<String> badBid = client.send(HttpRequest.newBuilder(URI.create(base + "/bid?amount=3&url=" + url))
+                    .POST(HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(401, badBid.statusCode());
+            HttpResponse<String> goodBid = client.send(HttpRequest.newBuilder(URI.create(base + "/bid?amount=3&url=" + url))
+                    .header("X-Admin-Key", "s3cret").POST(HttpRequest.BodyPublishers.noBody()).build(),
+                    HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, goodBid.statusCode());
+            assertEquals(200, delete(base + "/pages?url=" + url, "s3cret").statusCode());
+            // Searching and clicking never need the key.
+            assertTrue(client.send(HttpRequest.newBuilder(URI.create(base + "/search?q=merge")).GET().build(),
+                    HttpResponse.BodyHandlers.ofString()).body().contains("\"total\":"));
+        } finally {
+            locked.stop();
+        }
+    }
+
     @Test
     void rejectsAnUnknownSearchMode() throws Exception {
         HttpResponse<String> response = get("/search?q=sort&mode=xor");
