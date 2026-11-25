@@ -40,6 +40,12 @@ public final class SearchEngine {
 
     private static final Pattern WHITESPACE = Pattern.compile("(?U)\\s+");
 
+    /** Words shorter than this are never corrected: too many index words are one typo away. */
+    private static final int MIN_TYPO_LENGTH = 3;
+
+    /** Words with this many letters or more may have two typos; shorter ones may have one. */
+    private static final int LONG_WORD = 6;
+
     /** Words too common to narrow a search; the same words the index leaves out as noise. */
     static final Set<String> STOP_WORDS = NoiseFilter.NOISE_WORDS;
 
@@ -79,8 +85,115 @@ public final class SearchEngine {
      * words that follow each other in the original line are used, never words that wrap
      * around from its end. Suggestions made from more shifts come first, then alphabetically;
      * a shift that starts its line (usually a page title) counts three times.
+     *
+     * <p>If there are fewer than {@code limit} completions, a mistyped word is also corrected
+     * to the closest word in the index (FR028), and the corrected text is completed the same
+     * way. "sofware arch" suggests "software architecture".
      */
     public List<String> suggestSearches(String typed, int limit) {
+        List<String> suggestions = completions(typed, limit, false);
+        if (suggestions.size() >= limit || limit <= 0) {
+            return suggestions;
+        }
+        String corrected = correctTypos(typed);
+        if (corrected == null) {
+            return suggestions;
+        }
+        List<String> all = new ArrayList<>(suggestions);
+        for (String suggestion : completions(corrected, limit, true)) {
+            if (!all.contains(suggestion) && all.size() < limit) {
+                all.add(suggestion);
+            }
+        }
+        return List.copyOf(all);
+    }
+
+    /** The typed text with each mistyped word replaced by a close word from the index, or null if none was. */
+    private String correctTypos(String typed) {
+        List<String> words = words(typed);
+        if (words.isEmpty()) {
+            return null;
+        }
+        boolean lastComplete = Character.isWhitespace(typed.codePointBefore(typed.length()));
+        Map<String, Integer> vocabulary = new HashMap<>();
+        for (KwicEntry entry : output.getOutput()) {
+            String word = stripPunctuation(entry.keyword().toLowerCase(Locale.ROOT));
+            if (!word.isEmpty()) {
+                vocabulary.merge(word, 1, Integer::sum);
+            }
+        }
+        boolean changed = false;
+        List<String> fixed = new ArrayList<>(words.size());
+        for (int i = 0; i < words.size(); i++) {
+            String word = stripPunctuation(words.get(i));
+            boolean partial = i == words.size() - 1 && !lastComplete;
+            String replacement = word.length() < MIN_TYPO_LENGTH || STOP_WORDS.contains(word)
+                    ? word : closestWord(word, partial, vocabulary);
+            changed |= !replacement.equals(word);
+            fixed.add(replacement);
+        }
+        return changed ? String.join(" ", fixed) + (lastComplete ? " " : "") : null;
+    }
+
+    /**
+     * The index word closest to a typed word, within the allowed number of typos, or the typed
+     * word itself if it is already right. A word still being typed is already right if some
+     * index word starts with it, and is compared with the starts of index words otherwise.
+     */
+    private static String closestWord(String word, boolean partial, Map<String, Integer> vocabulary) {
+        if (partial ? vocabulary.keySet().stream().anyMatch(v -> v.startsWith(word)) : vocabulary.containsKey(word)) {
+            return word;
+        }
+        int allowed = word.length() >= LONG_WORD ? 2 : 1;
+        String best = word;
+        int bestDistance = allowed + 1;
+        int bestCount = 0;
+        for (Map.Entry<String, Integer> candidate : vocabulary.entrySet()) {
+            String v = candidate.getKey();
+            int distance = editDistance(word, v);
+            if (partial) {
+                for (int length = Math.max(1, word.length() - 1); length <= Math.min(v.length(), word.length() + 1); length++) {
+                    distance = Math.min(distance, editDistance(word, v.substring(0, length)));
+                }
+            }
+            boolean better = distance < bestDistance
+                    || (distance == bestDistance && distance <= allowed
+                    && (candidate.getValue() > bestCount
+                    || (candidate.getValue() == bestCount && v.compareTo(best) < 0)));
+            if (distance <= allowed && better) {
+                best = v;
+                bestDistance = distance;
+                bestCount = candidate.getValue();
+            }
+        }
+        return best;
+    }
+
+    /** The number of insertions, deletions, substitutions and swaps of neighbors that turn one word into the other. */
+    static int editDistance(String a, String b) {
+        int[] x = a.codePoints().toArray();
+        int[] y = b.codePoints().toArray();
+        int[][] d = new int[x.length + 1][y.length + 1];
+        for (int i = 0; i <= x.length; i++) {
+            d[i][0] = i;
+        }
+        for (int j = 0; j <= y.length; j++) {
+            d[0][j] = j;
+        }
+        for (int i = 1; i <= x.length; i++) {
+            for (int j = 1; j <= y.length; j++) {
+                int cost = x[i - 1] == y[j - 1] ? 0 : 1;
+                d[i][j] = Math.min(Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1), d[i - 1][j - 1] + cost);
+                if (i > 1 && j > 1 && x[i - 1] == y[j - 2] && x[i - 2] == y[j - 1]) {
+                    d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+                }
+            }
+        }
+        return d[x.length][y.length];
+    }
+
+    /** @param includeTyped whether the typed text itself, once completed, may be suggested */
+    private List<String> completions(String typed, int limit, boolean includeTyped) {
         List<String> words = words(typed);
         if (words.isEmpty() || limit <= 0) {
             return List.of();
@@ -115,7 +228,7 @@ public final class SearchEngine {
             int weight = offset == 0 ? 3 : 1;
             // The typed words, with the last one completed.
             String completed = String.join(" ", shift.subList(0, typedCount));
-            if (!completed.equals(typedText)) {
+            if (includeTyped || !completed.equals(typedText)) {
                 counts.merge(completed, weight, Integer::sum);
             }
             // Extended to the next meaningful word.

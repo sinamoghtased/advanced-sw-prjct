@@ -300,4 +300,40 @@ class SearchEngineTest {
         assertEquals(ResultOrder.BID, ResultOrder.parse(" bid ").orElseThrow());
         assertTrue(ResultOrder.parse("newest").isEmpty());
     }
+
+    @Test
+    void correctsATypoWhileSuggesting() {
+        assertEquals(List.of("software", "software design", "software systems"), control.suggest("sofware", 8));
+        assertEquals(List.of("software", "software design", "software systems"), control.suggest("sotfware", 8));
+        assertEquals(List.of("software design", "software design and architecture"), control.suggest("sofware d", 8));
+    }
+
+    @Test
+    void correctsATypoInAnEarlierWord() {
+        assertEquals(List.of("software design", "software design and architecture"), control.suggest("sofware desi", 8));
+        assertEquals(List.of("software design and architecture"), control.suggest("software desgin ", 8).stream()
+                .filter(s -> s.equals("software design and architecture")).toList());
+    }
+
+    @Test
+    void correctsAWordStillBeingTyped() {
+        // "sofw" is not the start of any index word, but is one typo from the start of "softw...".
+        assertEquals(List.of("software", "software design", "software systems"), control.suggest("sofw", 8));
+    }
+
+    @Test
+    void doesNotCorrectWordsThatAreRightOrCommonOrShort() {
+        assertEquals(List.of("software", "software design", "software systems"), control.suggest("soft", 8));
+        assertEquals(List.of(), control.suggest("zeb", 8));
+        assertEquals(List.of(), control.suggest("xq", 8));
+        assertEquals(List.of("man in the middle"), control.suggest("man ", 8));
+    }
+
+    @Test
+    void countsSwapsAndLettersAsTypos() {
+        assertEquals(1, SearchEngine.editDistance("sofware", "software"));
+        assertEquals(1, SearchEngine.editDistance("sotfware", "software"));
+        assertEquals(2, SearchEngine.editDistance("sftwre", "software"));
+        assertEquals(0, SearchEngine.editDistance("man", "man"));
+    }
 }
