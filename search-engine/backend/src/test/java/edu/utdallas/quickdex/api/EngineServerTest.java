@@ -70,6 +70,9 @@ class EngineServerTest {
         assertTrue(events.get(1).startsWith("{\"type\":\"update\",\"line\":1,\"size\":2,"), events.get(1));
         assertTrue(events.get(1).contains("\"keyword\":\"Descent\",\"context\":\"of Man\",\"url\":\"https://a.example\""),
                 events.get(1));
+        // The filtered shifts go from shift 0 straight to shift 2: "of Man Descent" is left out.
+        assertTrue(events.get(1).contains("\"filtered\":[{\"id\":0,\"line\":1,\"keyword\":\"Descent\","
+                + "\"context\":\"of Man\",\"url\":\"https://a.example\"},{\"id\":2,"), events.get(1));
         assertTrue(events.get(2).startsWith("{\"type\":\"update\",\"line\":2,\"size\":4,"), events.get(2));
         assertTrue(events.get(3).startsWith("{\"type\":\"done\",\"linesIndexed\":2,\"linesSkipped\":1,\"shifts\":4"),
                 events.get(3));

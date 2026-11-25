@@ -27,6 +27,7 @@ type IndexState = {
   expectedLines: number;
   entries: Entry[];
   lines: LineShifts[];
+  filtered: Entry[];
   latest: Set<number>;
   summary: Summary | null;
   error: string | null;
@@ -43,6 +44,7 @@ const initialState: IndexState = {
   expectedLines: 0,
   entries: [],
   lines: [],
+  filtered: [],
   latest: new Set(),
   summary: null,
   error: null,
@@ -68,6 +70,7 @@ function reducer(state: IndexState, action: Action): IndexState {
           next = {
             ...next,
             lines: [...next.lines, { line: event.line, url: shifts[0]?.url ?? null, shifts }],
+            filtered: [...next.filtered, ...event.filtered],
             latest: new Set(shifts.map((s) => s.id)),
           };
         } else if (event.type === "done") {
@@ -331,6 +334,67 @@ export default function IndexerApp() {
                           <td className="px-3 py-2 align-top font-semibold text-amber-900 dark:text-amber-200">{s.keyword}</td>
                           <td className="px-3 py-2 align-top text-amber-800/80 dark:text-amber-300/80">{s.context}</td>
                           <td className="px-3 py-2 text-right align-top tabular-nums text-amber-700 dark:text-amber-400">{s.line}</td>
+                          <td className="max-w-48 px-3 py-2 align-top">
+                            <EntryLink url={s.url} />
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* The shifts left after noise words are filtered out (FR018). */}
+            <div className="flex min-w-0 flex-col gap-3">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-medium uppercase tracking-widest text-zinc-500">
+                  Shifts after noise-word filtering
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => void copyEntries("Filtered shifts", state.filtered)}
+                  disabled={state.filtered.length === 0}
+                  className="rounded-full border border-black/[.12] px-3 py-1 text-sm disabled:opacity-40 dark:border-white/[.2]"
+                >
+                  Copy filtered shifts
+                </button>
+              </div>
+              <p className="text-sm text-zinc-500">
+                Shifts that start with a noise word such as &ldquo;a&rdquo;, &ldquo;the&rdquo; or
+                &ldquo;of&rdquo; are removed.{" "}
+                {(shifts.length - state.filtered.length).toLocaleString("en-US")} removed.
+              </p>
+              <div className="max-h-[36rem] overflow-x-auto overflow-y-auto rounded-lg border-2 border-violet-500 dark:border-violet-400">
+                <table className="w-full text-left text-sm">
+                  <caption className="sr-only">
+                    Circularly shifted lines that remain after noise-word filtering: keyword, context,
+                    source line, and link
+                  </caption>
+                  <thead className="border-b border-black/[.08] text-xs uppercase tracking-wider text-violet-700 dark:border-white/[.145] dark:text-violet-400">
+                    <tr>
+                      <th scope="col" className="px-3 py-2 font-medium">Keyword</th>
+                      <th scope="col" className="px-3 py-2 font-medium">Context</th>
+                      <th scope="col" className="px-3 py-2 text-right font-medium">Line</th>
+                      <th scope="col" className="px-3 py-2 font-medium">Link</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-black/[.06] dark:divide-white/[.1]">
+                    {state.filtered.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-3 py-6 text-center text-violet-700/70 dark:text-violet-400/70">
+                          {shifts.length === 0 ? "Waiting for the first line…" : "Every shift started with a noise word."}
+                        </td>
+                      </tr>
+                    ) : (
+                      state.filtered.map((s) => (
+                        <tr
+                          key={s.id}
+                          className={state.latest.has(s.id) ? "bg-amber-100 dark:bg-amber-400/15" : ""}
+                        >
+                          <td className="px-3 py-2 align-top font-semibold text-violet-900 dark:text-violet-200">{s.keyword}</td>
+                          <td className="px-3 py-2 align-top text-violet-800/80 dark:text-violet-300/80">{s.context}</td>
+                          <td className="px-3 py-2 text-right align-top tabular-nums text-violet-700 dark:text-violet-400">{s.line}</td>
                           <td className="max-w-48 px-3 py-2 align-top">
                             <EntryLink url={s.url} />
                           </td>

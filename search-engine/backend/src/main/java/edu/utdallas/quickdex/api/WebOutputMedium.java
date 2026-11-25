@@ -51,6 +51,11 @@ final class WebOutputMedium implements OutputMedium {
             json.append(i == 0 ? "{" : ",{");
             Json.entryFields(json, generated.get(i)).append('}');
         }
+        json.append("],\"filtered\":[");
+        for (int i = 0; i < filtered.size(); i++) {
+            json.append(i == 0 ? "{" : ",{");
+            Json.entryFields(json, filtered.get(i)).append('}');
+        }
         json.append("],\"inserted\":[");
         for (int i = 0; i < inserted.size(); i++) {
             PlacedEntry p = inserted.get(i);

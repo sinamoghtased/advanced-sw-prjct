@@ -24,7 +24,7 @@ export type Summary = {
 
 export type EngineEvent =
   | { type: "start"; index: string; lines: number }
-  | { type: "update"; line: number; size: number; generated: Entry[]; inserted: Placed[] }
+  | { type: "update"; line: number; size: number; generated: Entry[]; filtered: Entry[]; inserted: Placed[] }
   | ({ type: "done" } & Summary)
   | { type: "error"; message: string };
 
