@@ -83,9 +83,30 @@ public final class Alphabetizer {
         alphabetize(incoming);
     }
 
-    /** Returns how many lines have been read, including lines whose shifts were all filtered out. */
-    public int getLineCount() {
-        return originals.size();
+    /** Returns the numbers of the lines in the index, including lines whose shifts were all filtered out. */
+    public java.util.Set<Integer> getLineNumbers() {
+        return java.util.Set.copyOf(originals.keySet());
+    }
+
+    /** Returns the numbers of the lines that have this URL. */
+    public List<Integer> findLines(String url) {
+        return originals.values().stream()
+                .filter(entry -> entry.url() != null && entry.url().equals(url))
+                .map(KwicEntry::lineNumber).sorted().toList();
+    }
+
+    /**
+     * Removes every shift of a line from the sorted index (FR023). The other shifts keep their
+     * order and their ids.
+     *
+     * @return how many shifts were removed
+     */
+    public int removeLine(int lineNumber) {
+        int before = sorted.size();
+        sorted.removeIf(shift -> shift.entry.lineNumber() == lineNumber);
+        originals.remove(lineNumber);
+        newPositions = new int[0];
+        return before - sorted.size();
     }
 
     /**

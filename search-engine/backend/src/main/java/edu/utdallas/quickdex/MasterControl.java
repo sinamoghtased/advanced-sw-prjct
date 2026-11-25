@@ -105,6 +105,23 @@ public final class MasterControl {
         pageStats.setBid(url, amount);
     }
 
+    /**
+     * Deletes an out-of-date page: its description and all its circular shifts leave the index,
+     * and its clicks and bid are forgotten (FR023). Pages added later are unaffected.
+     *
+     * @return how many lines (pages) with this URL were deleted; 0 if there was none
+     */
+    public int delete(String url) {
+        List<Integer> lines = output.findLines(url);
+        for (int line : lines) {
+            output.removeLine(line);
+        }
+        if (!lines.isEmpty()) {
+            pageStats.forget(url);
+        }
+        return lines.size();
+    }
+
     /** Returns how many times a URL has been clicked. */
     public int clicks(String url) {
         return pageStats.clicks(url);

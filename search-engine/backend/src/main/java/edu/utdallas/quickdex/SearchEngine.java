@@ -305,7 +305,7 @@ public final class SearchEngine {
                 } else {
                     // One word: every line that does not have it.
                     Map<Integer, LineMatch> without = new HashMap<>();
-                    for (int n = 1; n <= output.getLineCount(); n++) {
+                    for (int n : output.getLineNumbers()) {
                         if (!lines.containsKey(n)) {
                             without.put(n, new LineMatch(1));
                         }

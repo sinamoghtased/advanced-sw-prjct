@@ -40,6 +40,12 @@ public final class PageStats {
         }
     }
 
+    /** Forgets the clicks and the bid of a URL, such as when its page is deleted. */
+    public void forget(String url) {
+        clicks.remove(url);
+        bids.remove(url);
+    }
+
     /** Returns a URL's bid. */
     public int bid(String url) {
         return url == null ? 0 : bids.getOrDefault(url, 0);

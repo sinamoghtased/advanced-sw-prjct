@@ -47,9 +47,25 @@ public final class Output {
         this.filter = filter;
     }
 
-    /** Returns how many lines have been indexed. */
-    public int getLineCount() {
-        return alphabetizer.getLineCount();
+    /** Returns the numbers of the lines that are in the index. */
+    public java.util.Set<Integer> getLineNumbers() {
+        return alphabetizer.getLineNumbers();
+    }
+
+    /** Returns the numbers of the lines that have this URL. */
+    public List<Integer> findLines(String url) {
+        return alphabetizer.findLines(url);
+    }
+
+    /**
+     * Removes a line from the index, so it is no longer shown or found.
+     *
+     * @return how many entries were removed
+     */
+    public int removeLine(int lineNumber) {
+        int removed = alphabetizer.removeLine(lineNumber);
+        shown = alphabetizer.getShiftCount();
+        return removed;
     }
 
     /** Returns a line's shift in its original word order, even if the index left it out. */
