@@ -47,6 +47,11 @@ public final class Output {
         this.filter = filter;
     }
 
+    /** Returns how many lines have been indexed. */
+    public int getLineCount() {
+        return alphabetizer.getLineCount();
+    }
+
     /** Returns a line's shift in its original word order, even if the index left it out. */
     public KwicEntry getLineOriginal(int lineNumber) {
         return alphabetizer.getLineOriginal(lineNumber);

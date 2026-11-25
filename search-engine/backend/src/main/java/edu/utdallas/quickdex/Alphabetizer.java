@@ -83,6 +83,11 @@ public final class Alphabetizer {
         alphabetize(incoming);
     }
 
+    /** Returns how many lines have been read, including lines whose shifts were all filtered out. */
+    public int getLineCount() {
+        return originals.size();
+    }
+
     /**
      * Returns a line's first shift, which has the words in their original order, even if the
      * index left it out as a noise-word shift.

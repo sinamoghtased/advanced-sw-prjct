@@ -22,8 +22,10 @@ import java.util.regex.Pattern;
  * <p>Every word of a line is the keyword of one index entry, so a search needs only the
  * index: a line matches when each search word starts one of the line's keywords, ignoring
  * case (FR9.0). Common words such as "the" and "who" are ignored unless the search has
- * nothing else. If no line has every word, the lines with the most of them are shown
- * instead, with the missing words listed. Lines are ranked by these rules, in order:
+ * nothing else. The {@link SearchMode} says how the words combine: OR (the default) shows
+ * lines with any of them, with the missing words listed; AND shows lines with all of them;
+ * NOT shows lines with the first word and none of the others. Lines are ranked by these
+ * rules, in order:
  * <ol>
  *   <li>lines whose title (the text before the first colon, or the whole line) is exactly the
  *       search words;</li>
@@ -54,8 +56,13 @@ public final class SearchEngine {
      * words finds nothing.
      */
     public void setSearchEngine(String query) {
+        setSearchEngine(query, SearchMode.OR);
+    }
+
+    /** Searches the index, combining the search words by {@code mode}. */
+    public void setSearchEngine(String query, SearchMode mode) {
         List<KwicEntry> index = output.getOutput();
-        displayResults(query, searchKeywordMatches(query, index));
+        displayResults(query, searchKeywordMatches(query, index, mode));
     }
 
     /**
@@ -140,7 +147,7 @@ public final class SearchEngine {
         return true;
     }
 
-    private List<SearchResult> searchKeywordMatches(String query, List<KwicEntry> index) {
+    private List<SearchResult> searchKeywordMatches(String query, List<KwicEntry> index, SearchMode mode) {
         List<String> terms = searchTerms(query);
         if (terms.isEmpty()) {
             return List.of();
@@ -168,9 +175,26 @@ public final class SearchEngine {
                 }
             }
         }
-        // Keep the lines with every word; if there are none, the lines with the most words.
-        int best = lines.values().stream().mapToInt(LineMatch::foundWords).max().orElse(0);
-        lines.values().removeIf(line -> line.foundWords() < best);
+        // Keep the lines the mode accepts. Every line in the map so far has at least one word.
+        switch (mode) {
+            case OR -> { }
+            case AND -> lines.values().removeIf(line -> line.foundWords() < terms.size());
+            case NOT -> {
+                if (terms.size() > 1) {
+                    lines.values().removeIf(line -> !line.found[0] || line.foundWords() > 1);
+                } else {
+                    // One word: every line that does not have it.
+                    Map<Integer, LineMatch> without = new HashMap<>();
+                    for (int n = 1; n <= output.getLineCount(); n++) {
+                        if (!lines.containsKey(n)) {
+                            without.put(n, new LineMatch(1));
+                        }
+                    }
+                    lines.clear();
+                    lines.putAll(without);
+                }
+            }
+        }
         if (lines.isEmpty()) {
             return List.of();
         }
@@ -187,6 +211,7 @@ public final class SearchEngine {
         List<LineMatch> ranked = new ArrayList<>(lines.values());
         ranked.sort(Comparator.comparing((LineMatch m) -> !m.exactTitle)
                 .thenComparing(m -> !m.phrase)
+                .thenComparing(Comparator.comparingInt(LineMatch::foundWords).reversed())
                 .thenComparing(Comparator.comparingInt(LineMatch::wholeWords).reversed())
                 .thenComparing(m -> !m.leading)
                 .thenComparing(m -> m.original.text().toLowerCase(Locale.ROOT))
@@ -195,7 +220,7 @@ public final class SearchEngine {
         for (LineMatch line : ranked) {
             KwicEntry original = line.original;
             List<String> missing = new ArrayList<>();
-            for (int t = 0; t < terms.size(); t++) {
+            for (int t = 0; mode == SearchMode.OR && t < terms.size(); t++) {
                 if (!line.found[t]) {
                     missing.add(terms.get(t));
                 }

@@ -84,9 +84,14 @@ public final class MasterControl {
         return summary;
     }
 
-    /** Searches the index and shows the matching pages on the Output Medium. */
+    /** Searches the index with the default OR mode and shows the matching pages on the Output Medium. */
     public void search(String keyword) {
         searchEngine.setSearchEngine(keyword);
+    }
+
+    /** Searches the index, combining the words by {@code mode}, and shows the matching pages. */
+    public void search(String keyword, SearchMode mode) {
+        searchEngine.setSearchEngine(keyword, mode);
     }
 
     /** Suggests up to {@code limit} searches that complete {@code typed}. */

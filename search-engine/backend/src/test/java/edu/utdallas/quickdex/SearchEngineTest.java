@@ -64,13 +64,16 @@ class SearchEngineTest {
     }
 
     @Test
-    void requiresEveryWordAndListsPhraseMatchesFirst() {
+    void listsLinesWithMoreWordsAndPhraseMatchesFirst() {
         // "software design" appears as a phrase only in the first line.
         assertEquals(List.of("Software design and architecture", "Designing software systems"),
                 search("software design"));
         assertTrue(medium.results.get(0).phraseMatch());
         assertFalse(medium.results.get(1).phraseMatch());
-        assertEquals(List.of("Software design and architecture"), search("design architecture"));
+        // OR lists the line with both words first, then the line with only one of them.
+        assertEquals(List.of("Software design and architecture", "Designing software systems"),
+                search("design architecture"));
+        assertEquals(List.of("Software design and architecture"), search("design architecture", SearchMode.AND));
     }
 
     @Test
@@ -136,5 +139,45 @@ class SearchEngineTest {
         SearchResult result = medium.results.get(0);
         assertEquals("https://a.example", result.url());
         assertEquals(1, result.lineNumber());
+    }
+
+    private List<String> search(String words, SearchMode mode) {
+        control.search(words, mode);
+        return medium.results.stream().map(SearchResult::text).toList();
+    }
+
+    @Test
+    void orIsTheDefaultAndFindsLinesWithAnyWord() {
+        List<String> either = search("software architecture");
+        assertEquals(List.of("Software design and architecture", "Designing software systems"), either);
+        assertEquals(either, search("software architecture", SearchMode.OR));
+        assertEquals(List.of("architecture"), medium.results.get(1).missingWords());
+    }
+
+    @Test
+    void andFindsOnlyLinesWithEveryWord() {
+        assertEquals(List.of("Software design and architecture"), search("software architecture", SearchMode.AND));
+        assertEquals(List.of(), medium.results.get(0).missingWords());
+        assertEquals(List.of(), search("man zebra", SearchMode.AND));
+    }
+
+    @Test
+    void notFindsLinesWithTheFirstWordAndNoneOfTheOthers() {
+        assertEquals(List.of("Designing software systems"), search("software architecture", SearchMode.NOT));
+        assertEquals(List.of(), medium.results.get(0).missingWords());
+        assertEquals(List.of(), search("software systems design", SearchMode.NOT));
+    }
+
+    @Test
+    void notWithOneWordFindsTheLinesWithoutIt() {
+        assertEquals(List.of("Designing software systems", "Key Word in Context", "Software design and architecture"),
+                search("man", SearchMode.NOT));
+    }
+
+    @Test
+    void readsModeNamesInAnyCase() {
+        assertEquals(SearchMode.AND, SearchMode.parse("and").orElseThrow());
+        assertEquals(SearchMode.NOT, SearchMode.parse(" Not ").orElseThrow());
+        assertTrue(SearchMode.parse("xor").isEmpty());
     }
 }
