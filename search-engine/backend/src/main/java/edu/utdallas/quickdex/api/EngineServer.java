@@ -9,6 +9,7 @@ import edu.utdallas.quickdex.Output;
 import edu.utdallas.quickdex.PlacedEntry;
 import edu.utdallas.quickdex.QueueInputMedium;
 import edu.utdallas.quickdex.SearchMode;
+import edu.utdallas.quickdex.SearchOptions;
 import edu.utdallas.quickdex.SearchResult;
 import edu.utdallas.quickdex.TextInputMedium;
 import java.io.IOException;
@@ -391,6 +392,9 @@ public final class EngineServer {
             return;
         }
 
+        boolean caseSensitive = "true".equalsIgnoreCase(params.get("case"));
+        SearchOptions options = new SearchOptions(mode.get(), caseSensitive);
+
         long start = System.nanoTime();
         WebOutputMedium.SearchResults found;
         synchronized (session) {
@@ -399,7 +403,7 @@ public final class EngineServer {
                 // promises matches for real keywords; browsing is a separate, additive view).
                 found = browseAll(session);
             } else {
-                session.control.search(words, mode.get());
+                session.control.search(words, options);
                 found = session.medium.takeResults();
             }
         }

@@ -142,7 +142,7 @@ class SearchEngineTest {
     }
 
     private List<String> search(String words, SearchMode mode) {
-        control.search(words, mode);
+        control.search(words, SearchOptions.DEFAULT.withMode(mode));
         return medium.results.stream().map(SearchResult::text).toList();
     }
 
@@ -179,5 +179,35 @@ class SearchEngineTest {
         assertEquals(SearchMode.AND, SearchMode.parse("and").orElseThrow());
         assertEquals(SearchMode.NOT, SearchMode.parse(" Not ").orElseThrow());
         assertTrue(SearchMode.parse("xor").isEmpty());
+    }
+
+    @Test
+    void ignoresCaseByDefault() {
+        assertEquals(3, search("MAN").size());
+        assertEquals(List.of("Key Word in Context"), search("kEy"));
+    }
+
+    @Test
+    void caseSensitiveSearchMatchesOnlyTheSameCase() {
+        MasterControl control = new MasterControl(new TextInputMedium(
+                "Java the language\njava coffee beans\nJAVA acronym"), medium);
+        control.run();
+        SearchOptions sensitive = SearchOptions.DEFAULT.withCaseSensitive(true);
+
+        control.search("Java", sensitive);
+        assertEquals(List.of("Java the language"), medium.results.stream().map(SearchResult::text).toList());
+        control.search("java", sensitive);
+        assertEquals(List.of("java coffee beans"), medium.results.stream().map(SearchResult::text).toList());
+        control.search("JA", sensitive);
+        assertEquals(List.of("JAVA acronym"), medium.results.stream().map(SearchResult::text).toList());
+        control.search("Java");
+        assertEquals(3, medium.results.size());
+    }
+
+    @Test
+    void caseSensitiveSearchStillIgnoresCommonWords() {
+        control.search("The Man", SearchOptions.DEFAULT.withCaseSensitive(true).withMode(SearchMode.AND));
+        // "The" is a common word, so only "Man" is searched, with its case.
+        assertEquals(3, medium.results.size());
     }
 }

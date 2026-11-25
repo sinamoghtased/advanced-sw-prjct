@@ -105,6 +105,15 @@ class EngineServerTest {
     }
 
     @Test
+    void searchesCaseSensitivelyWhenAsked() throws Exception {
+        String id = indexId(post("Java the language\njava coffee beans").body());
+        String base = "/search?index=" + id + "&q=";
+        assertTrue(get(base + "java").body().contains("\"total\":2,"));
+        assertTrue(get(base + "java&case=true").body().contains("\"total\":1,"));
+        assertTrue(get(base + "Java&case=true").body().contains("\"text\":\"Java the language\""));
+    }
+
+    @Test
     void rejectsAnUnknownSearchMode() throws Exception {
         HttpResponse<String> response = get("/search?q=sort&mode=xor");
         assertEquals(400, response.statusCode());

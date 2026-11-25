@@ -89,9 +89,9 @@ public final class MasterControl {
         searchEngine.setSearchEngine(keyword);
     }
 
-    /** Searches the index, combining the words by {@code mode}, and shows the matching pages. */
-    public void search(String keyword, SearchMode mode) {
-        searchEngine.setSearchEngine(keyword, mode);
+    /** Searches the index with the user's options and shows the matching pages. */
+    public void search(String keyword, SearchOptions options) {
+        searchEngine.setSearchEngine(keyword, options);
     }
 
     /** Suggests up to {@code limit} searches that complete {@code typed}. */

@@ -56,13 +56,13 @@ public final class SearchEngine {
      * words finds nothing.
      */
     public void setSearchEngine(String query) {
-        setSearchEngine(query, SearchMode.OR);
+        setSearchEngine(query, SearchOptions.DEFAULT);
     }
 
-    /** Searches the index, combining the search words by {@code mode}. */
-    public void setSearchEngine(String query, SearchMode mode) {
+    /** Searches the index with the user's options: the mode and whether case matters. */
+    public void setSearchEngine(String query, SearchOptions options) {
         List<KwicEntry> index = output.getOutput();
-        displayResults(query, searchKeywordMatches(query, index, mode));
+        displayResults(query, searchKeywordMatches(query, index, options));
     }
 
     /**
@@ -147,8 +147,10 @@ public final class SearchEngine {
         return true;
     }
 
-    private List<SearchResult> searchKeywordMatches(String query, List<KwicEntry> index, SearchMode mode) {
-        List<String> terms = searchTerms(query);
+    private List<SearchResult> searchKeywordMatches(String query, List<KwicEntry> index, SearchOptions options) {
+        SearchMode mode = options.mode();
+        boolean cs = options.caseSensitive();
+        List<String> terms = searchTerms(query, cs);
         if (terms.isEmpty()) {
             return List.of();
         }
@@ -157,7 +159,7 @@ public final class SearchEngine {
         Map<Integer, LineMatch> lines = new HashMap<>();
         for (int position = 0; position < index.size(); position++) {
             KwicEntry entry = index.get(position);
-            String keyword = entry.keyword().toLowerCase(Locale.ROOT);
+            String keyword = fold(entry.keyword(), cs);
             boolean matched = false;
             for (int t = 0; t < terms.size(); t++) {
                 if (keyword.startsWith(terms.get(t))) {
@@ -170,7 +172,7 @@ public final class SearchEngine {
             if (matched) {
                 LineMatch line = lines.get(entry.lineNumber());
                 line.matches.add(new PlacedEntry(position, entry));
-                if (!line.phrase && startsWithPhrase(entry, terms)) {
+                if (!line.phrase && startsWithPhrase(entry, terms, cs)) {
                     line.phrase = true;
                 }
             }
@@ -205,8 +207,8 @@ public final class SearchEngine {
         }
 
         for (LineMatch line : lines.values()) {
-            line.exactTitle = title(line.original.text()).equals(terms.stream().map(SearchEngine::stripPunctuation).toList());
-            line.leading = startsWithPhrase(line.original, terms);
+            line.exactTitle = title(line.original.text(), cs).equals(terms.stream().map(SearchEngine::stripPunctuation).toList());
+            line.leading = startsWithPhrase(line.original, terms, cs);
         }
         List<LineMatch> ranked = new ArrayList<>(lines.values());
         ranked.sort(Comparator.comparing((LineMatch m) -> !m.exactTitle)
@@ -236,16 +238,17 @@ public final class SearchEngine {
     }
 
     /** The words to search for: the query's words, without common ones unless only those remain. */
-    private static List<String> searchTerms(String query) {
-        List<String> words = words(query).stream().distinct().toList();
-        List<String> meaningful = words.stream().filter(w -> !STOP_WORDS.contains(stripPunctuation(w))).toList();
+    private static List<String> searchTerms(String query, boolean cs) {
+        List<String> words = words(query, cs).stream().distinct().toList();
+        List<String> meaningful = words.stream()
+                .filter(w -> !STOP_WORDS.contains(stripPunctuation(w).toLowerCase(Locale.ROOT))).toList();
         return meaningful.isEmpty() ? words : meaningful;
     }
 
     /** A line's title: its words before the first word ending in a colon, or all its words. */
-    private static List<String> title(String text) {
+    private static List<String> title(String text, boolean cs) {
         List<String> title = new ArrayList<>();
-        for (String word : words(text)) {
+        for (String word : words(text, cs)) {
             title.add(stripPunctuation(word));
             if (word.endsWith(":")) {
                 break;
@@ -256,8 +259,8 @@ public final class SearchEngine {
     }
 
     /** Whether the entry's shift starts with the search words, each as a word prefix. */
-    private static boolean startsWithPhrase(KwicEntry entry, List<String> terms) {
-        List<String> words = words(entry.text());
+    private static boolean startsWithPhrase(KwicEntry entry, List<String> terms, boolean cs) {
+        List<String> words = words(entry.text(), cs);
         if (words.size() < terms.size()) {
             return false;
         }
@@ -282,14 +285,24 @@ public final class SearchEngine {
         return word.substring(start, end);
     }
 
+    /** Lowercases text unless case matters. */
+    private static String fold(String text, boolean cs) {
+        return cs ? text : text.toLowerCase(Locale.ROOT);
+    }
+
     /** Splits text into lowercase words. */
     private static List<String> words(String text) {
+        return words(text, false);
+    }
+
+    /** Splits text into words, lowercased unless case matters. */
+    private static List<String> words(String text, boolean cs) {
         if (text == null || text.isBlank()) {
             return List.of();
         }
         return Arrays.stream(WHITESPACE.split(text.strip()))
                 .filter(w -> !w.isEmpty())
-                .map(w -> w.toLowerCase(Locale.ROOT))
+                .map(w -> fold(w, cs))
                 .toList();
     }
 
