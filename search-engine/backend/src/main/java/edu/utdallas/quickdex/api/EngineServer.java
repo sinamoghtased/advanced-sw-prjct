@@ -8,6 +8,7 @@ import edu.utdallas.quickdex.MasterControl;
 import edu.utdallas.quickdex.Output;
 import edu.utdallas.quickdex.PlacedEntry;
 import edu.utdallas.quickdex.QueueInputMedium;
+import edu.utdallas.quickdex.ResultOrder;
 import edu.utdallas.quickdex.SearchMode;
 import edu.utdallas.quickdex.SearchOptions;
 import edu.utdallas.quickdex.SearchResult;
@@ -74,6 +75,7 @@ public final class EngineServer {
     static final int MAX_SUGGESTIONS = 10;
     static final int MAX_WEB_PAGES = 50_000;
     static final int MAX_DELAY_MILLIS = 2_000;
+    static final int MAX_BID = 1_000_000;
     private static final int MAX_PAGE_BATCH_BYTES = 1_000_000;
 
     private final HttpServer server;
@@ -112,6 +114,8 @@ public final class EngineServer {
         server.createContext("/pages", this::addPages);
         server.createContext("/index", this::index);
         server.createContext("/search", this::search);
+        server.createContext("/click", this::click);
+        server.createContext("/bid", this::bid);
         server.createContext("/export", this::export);
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
     }
@@ -239,6 +243,11 @@ public final class EngineServer {
             send(exchange, 400, "application/json", Json.error(problem.get()));
             return;
         }
+        long bid = parseLong(query(exchange).get("bid"), 0);
+        if (bid < 0 || bid > MAX_BID) {
+            send(exchange, 400, "application/json", Json.error("The bid must be between 0 and " + MAX_BID + "."));
+            return;
+        }
         IndexSession web = webIndex;
         int added = 0;
         int rejected = 0;
@@ -256,6 +265,9 @@ public final class EngineServer {
             }
             if (!fresh.isEmpty()) {
                 web.queue.add(fresh);
+                if (bid > 0) {
+                    fresh.forEach(line -> web.control.setBid(Input.urlOf(line), (int) bid));
+                }
                 MasterControl.RunSummary summary = web.control.run();
                 web.pages += summary.linesIndexed();
                 web.entries = summary.shifts();
@@ -392,8 +404,14 @@ public final class EngineServer {
             return;
         }
 
+        Optional<ResultOrder> order = ResultOrder.parse(params.getOrDefault("order", "relevance"));
+        if (order.isEmpty()) {
+            send(exchange, 400, "application/json",
+                    Json.error("The order must be relevance, alphabetical, clicks or bid."));
+            return;
+        }
         boolean caseSensitive = "true".equalsIgnoreCase(params.get("case"));
-        SearchOptions options = new SearchOptions(mode.get(), caseSensitive, params.get("symbols"));
+        SearchOptions options = new SearchOptions(mode.get(), caseSensitive, params.get("symbols"), order.get());
 
         long start = System.nanoTime();
         WebOutputMedium.SearchResults found;
@@ -458,10 +476,63 @@ public final class EngineServer {
         send(exchange, 200, csv ? "text/csv" : "text/plain", csv ? "﻿" + file : file);
     }
 
-    /** Finds a finished index, or sends an error response and returns {@code null}. */
+    /** Counts a click on a result, so results can be ordered by most clicks (FR030). */
+    private void click(HttpExchange exchange) throws IOException {
+        Map<String, String> params = query(exchange);
+        IndexSession session = find(exchange, params.get("index"), "POST");
+        String url = params.get("url");
+        if (session == null) {
+            return;
+        }
+        if (url == null || url.isBlank()) {
+            send(exchange, 400, "application/json", Json.error("Say which URL was clicked."));
+            return;
+        }
+        int clicks;
+        synchronized (session) {
+            if (session == webIndex && !session.urls.contains(url)) {
+                send(exchange, 404, "application/json", Json.error("No indexed page has this URL."));
+                return;
+            }
+            session.control.recordClick(url);
+            clicks = session.control.clicks(url);
+        }
+        send(exchange, 200, "application/json", "{\"url\":" + Json.string(url) + ",\"clicks\":" + clicks + "}");
+    }
+
+    /** Sets what a page bids to be listed first when results are ordered by bid (FR030). */
+    private void bid(HttpExchange exchange) throws IOException {
+        Map<String, String> params = query(exchange);
+        IndexSession session = find(exchange, params.get("index"), "POST");
+        String url = params.get("url");
+        if (session == null) {
+            return;
+        }
+        long amount = parseLong(params.get("amount"), -1);
+        if (url == null || url.isBlank() || amount < 0 || amount > MAX_BID) {
+            send(exchange, 400, "application/json",
+                    Json.error("Give the page's URL and a bid between 0 and " + MAX_BID + "."));
+            return;
+        }
+        synchronized (session) {
+            if (session == webIndex && !session.urls.contains(url)) {
+                send(exchange, 404, "application/json", Json.error("No indexed page has this URL."));
+                return;
+            }
+            session.control.setBid(url, (int) amount);
+        }
+        send(exchange, 200, "application/json", "{\"url\":" + Json.string(url) + ",\"bid\":" + amount + "}");
+    }
+
+    /** Finds a finished index for a GET request, or sends an error response and returns {@code null}. */
     private IndexSession find(HttpExchange exchange, String id) throws IOException {
-        if (!"GET".equals(exchange.getRequestMethod())) {
-            send(exchange, 405, "application/json", Json.error("Use GET."));
+        return find(exchange, id, "GET");
+    }
+
+    /** Finds a finished index, or sends an error response and returns {@code null}. */
+    private IndexSession find(HttpExchange exchange, String id, String method) throws IOException {
+        if (!method.equals(exchange.getRequestMethod())) {
+            send(exchange, 405, "application/json", Json.error("Use " + method + "."));
             return null;
         }
         if (id == null || id.isBlank()) {

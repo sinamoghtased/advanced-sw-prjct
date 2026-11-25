@@ -105,6 +105,16 @@ public final class MasterControl {
         pageStats.setBid(url, amount);
     }
 
+    /** Returns how many times a URL has been clicked. */
+    public int clicks(String url) {
+        return pageStats.clicks(url);
+    }
+
+    /** Returns a URL's bid. */
+    public int bid(String url) {
+        return pageStats.bid(url);
+    }
+
     /** Suggests up to {@code limit} searches that complete {@code typed}. */
     public List<String> suggest(String typed, int limit) {
         return searchEngine.suggestSearches(typed, limit);

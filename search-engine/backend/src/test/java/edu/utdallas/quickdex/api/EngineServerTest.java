@@ -121,6 +121,44 @@ class EngineServerTest {
         assertTrue(get(base + "&symbols=-").body().contains("\"total\":1,"));
     }
 
+    private static HttpResponse<String> postTo(String path, String body) throws Exception {
+        return client.send(HttpRequest.newBuilder(uri(path))
+                .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8)).build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
+    @Test
+    void ordersResultsByClicksAndBids() throws Exception {
+        String pages = "https://alpha.example.org/p Quolls are small marsupials\n"
+                + "https://beta.example.org/p Quolls live in forests\n"
+                + "https://gamma.example.org/p Quolls hunt at night\n";
+        assertEquals(200, postTo("/pages?bid=0", pages).statusCode());
+        String base = "/search?q=quolls&order=";
+        assertTrue(get(base + "alphabetical").body().indexOf("alpha.example") < get(base + "alphabetical").body().indexOf("beta.example"));
+
+        assertEquals(200, postTo("/click?url=" + URLEncoder.encode("https://gamma.example.org/p", StandardCharsets.UTF_8), "").statusCode());
+        HttpResponse<String> clicked = postTo("/click?url=" + URLEncoder.encode("https://gamma.example.org/p", StandardCharsets.UTF_8), "");
+        assertTrue(clicked.body().contains("\"clicks\":2"), clicked.body());
+        String byClicks = get(base + "clicks").body();
+        assertTrue(byClicks.indexOf("gamma.example") < byClicks.indexOf("alpha.example"), byClicks);
+
+        HttpResponse<String> bid = postTo("/bid?amount=9&url=" + URLEncoder.encode("https://beta.example.org/p", StandardCharsets.UTF_8), "");
+        assertTrue(bid.body().contains("\"bid\":9"), bid.body());
+        String byBid = get(base + "bid").body();
+        assertTrue(byBid.indexOf("beta.example") < byBid.indexOf("alpha.example"), byBid);
+        assertTrue(byBid.contains("\"total\":3,"), byBid);
+    }
+
+    @Test
+    void rejectsBadClicksBidsAndOrders() throws Exception {
+        assertEquals(400, get("/search?q=sort&order=newest").statusCode());
+        assertEquals(405, get("/click?url=x").statusCode());
+        assertEquals(400, postTo("/click", "").statusCode());
+        assertEquals(404, postTo("/click?url=" + URLEncoder.encode("https://nobody.example.org", StandardCharsets.UTF_8), "").statusCode());
+        assertEquals(400, postTo("/bid?amount=-5&url=" + URLEncoder.encode("https://en.wikipedia.org/wiki/Merge_sort", StandardCharsets.UTF_8), "").statusCode());
+        assertEquals(400, postTo("/pages?bid=-1", "https://x.example.org X page").statusCode());
+    }
+
     @Test
     void rejectsAnUnknownSearchMode() throws Exception {
         HttpResponse<String> response = get("/search?q=sort&mode=xor");
