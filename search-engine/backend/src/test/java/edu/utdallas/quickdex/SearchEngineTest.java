@@ -210,4 +210,32 @@ class SearchEngineTest {
         // "The" is a common word, so only "Man" is searched, with its case.
         assertEquals(3, medium.results.size());
     }
+
+    @Test
+    void ignoredSymbolsAreLeftOutOfQueryAndDescriptionWords() {
+        MasterControl control = new MasterControl(new TextInputMedium(
+                "Self-driving cars\nC++ programming guide\nDrivers & cars"), medium);
+        control.run();
+
+        control.search("selfdriving");
+        assertEquals(0, medium.results.size());
+        control.search("selfdriving", SearchOptions.DEFAULT.withIgnoredSymbols("-"));
+        assertEquals(List.of("Self-driving cars"), medium.results.stream().map(SearchResult::text).toList());
+        control.search("self driving", SearchOptions.DEFAULT.withIgnoredSymbols("-").withMode(SearchMode.AND));
+        assertEquals(0, medium.results.size());
+        control.search("c++", SearchOptions.DEFAULT.withIgnoredSymbols("+"));
+        assertEquals("C++ programming guide", medium.results.get(0).text());
+    }
+
+    @Test
+    void aQueryOfOnlyIgnoredSymbolsFindsNothing() {
+        control.search("&-", SearchOptions.DEFAULT.withIgnoredSymbols("&-"));
+        assertEquals(0, medium.results.size());
+    }
+
+    @Test
+    void ignoredSymbolsInTheQueryAreDroppedBeforeMatching() {
+        control.search("m-an", SearchOptions.DEFAULT.withIgnoredSymbols("-"));
+        assertEquals(3, medium.results.size());
+    }
 }

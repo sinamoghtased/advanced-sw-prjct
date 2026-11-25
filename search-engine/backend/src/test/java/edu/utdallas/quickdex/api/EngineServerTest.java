@@ -114,6 +114,14 @@ class EngineServerTest {
     }
 
     @Test
+    void ignoresTheSymbolsTheUserListsWhenSearching() throws Exception {
+        String id = indexId(post("Self-driving cars\nDriver assistance").body());
+        String base = "/search?index=" + id + "&q=selfdriving";
+        assertTrue(get(base).body().contains("\"total\":0,"));
+        assertTrue(get(base + "&symbols=-").body().contains("\"total\":1,"));
+    }
+
+    @Test
     void rejectsAnUnknownSearchMode() throws Exception {
         HttpResponse<String> response = get("/search?q=sort&mode=xor");
         assertEquals(400, response.statusCode());

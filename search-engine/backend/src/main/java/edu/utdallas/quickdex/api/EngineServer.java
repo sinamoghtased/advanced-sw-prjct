@@ -393,7 +393,7 @@ public final class EngineServer {
         }
 
         boolean caseSensitive = "true".equalsIgnoreCase(params.get("case"));
-        SearchOptions options = new SearchOptions(mode.get(), caseSensitive);
+        SearchOptions options = new SearchOptions(mode.get(), caseSensitive, params.get("symbols"));
 
         long start = System.nanoTime();
         WebOutputMedium.SearchResults found;

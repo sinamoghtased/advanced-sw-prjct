@@ -59,7 +59,7 @@ public final class SearchEngine {
         setSearchEngine(query, SearchOptions.DEFAULT);
     }
 
-    /** Searches the index with the user's options: the mode and whether case matters. */
+    /** Searches the index with the user's options: the mode, case, and symbols to ignore. */
     public void setSearchEngine(String query, SearchOptions options) {
         List<KwicEntry> index = output.getOutput();
         displayResults(query, searchKeywordMatches(query, index, options));
@@ -149,8 +149,7 @@ public final class SearchEngine {
 
     private List<SearchResult> searchKeywordMatches(String query, List<KwicEntry> index, SearchOptions options) {
         SearchMode mode = options.mode();
-        boolean cs = options.caseSensitive();
-        List<String> terms = searchTerms(query, cs);
+        List<String> terms = searchTerms(query, options);
         if (terms.isEmpty()) {
             return List.of();
         }
@@ -159,7 +158,7 @@ public final class SearchEngine {
         Map<Integer, LineMatch> lines = new HashMap<>();
         for (int position = 0; position < index.size(); position++) {
             KwicEntry entry = index.get(position);
-            String keyword = fold(entry.keyword(), cs);
+            String keyword = norm(entry.keyword(), options);
             boolean matched = false;
             for (int t = 0; t < terms.size(); t++) {
                 if (keyword.startsWith(terms.get(t))) {
@@ -172,7 +171,7 @@ public final class SearchEngine {
             if (matched) {
                 LineMatch line = lines.get(entry.lineNumber());
                 line.matches.add(new PlacedEntry(position, entry));
-                if (!line.phrase && startsWithPhrase(entry, terms, cs)) {
+                if (!line.phrase && startsWithPhrase(entry, terms, options)) {
                     line.phrase = true;
                 }
             }
@@ -207,8 +206,8 @@ public final class SearchEngine {
         }
 
         for (LineMatch line : lines.values()) {
-            line.exactTitle = title(line.original.text(), cs).equals(terms.stream().map(SearchEngine::stripPunctuation).toList());
-            line.leading = startsWithPhrase(line.original, terms, cs);
+            line.exactTitle = title(line.original.text(), options).equals(terms.stream().map(SearchEngine::stripPunctuation).toList());
+            line.leading = startsWithPhrase(line.original, terms, options);
         }
         List<LineMatch> ranked = new ArrayList<>(lines.values());
         ranked.sort(Comparator.comparing((LineMatch m) -> !m.exactTitle)
@@ -238,17 +237,17 @@ public final class SearchEngine {
     }
 
     /** The words to search for: the query's words, without common ones unless only those remain. */
-    private static List<String> searchTerms(String query, boolean cs) {
-        List<String> words = words(query, cs).stream().distinct().toList();
+    private static List<String> searchTerms(String query, SearchOptions options) {
+        List<String> words = words(query, options).stream().distinct().toList();
         List<String> meaningful = words.stream()
                 .filter(w -> !STOP_WORDS.contains(stripPunctuation(w).toLowerCase(Locale.ROOT))).toList();
         return meaningful.isEmpty() ? words : meaningful;
     }
 
     /** A line's title: its words before the first word ending in a colon, or all its words. */
-    private static List<String> title(String text, boolean cs) {
+    private static List<String> title(String text, SearchOptions options) {
         List<String> title = new ArrayList<>();
-        for (String word : words(text, cs)) {
+        for (String word : words(text, options)) {
             title.add(stripPunctuation(word));
             if (word.endsWith(":")) {
                 break;
@@ -259,8 +258,8 @@ public final class SearchEngine {
     }
 
     /** Whether the entry's shift starts with the search words, each as a word prefix. */
-    private static boolean startsWithPhrase(KwicEntry entry, List<String> terms, boolean cs) {
-        List<String> words = words(entry.text(), cs);
+    private static boolean startsWithPhrase(KwicEntry entry, List<String> terms, SearchOptions options) {
+        List<String> words = words(entry.text(), options);
         if (words.size() < terms.size()) {
             return false;
         }
@@ -285,24 +284,31 @@ public final class SearchEngine {
         return word.substring(start, end);
     }
 
-    /** Lowercases text unless case matters. */
-    private static String fold(String text, boolean cs) {
-        return cs ? text : text.toLowerCase(Locale.ROOT);
+    /** Removes the symbols the user ignores, then lowercases the text unless case matters. */
+    private static String norm(String text, SearchOptions options) {
+        String kept = text;
+        Set<Integer> ignored = options.ignoredCodePoints();
+        if (!ignored.isEmpty()) {
+            kept = text.codePoints().filter(c -> !ignored.contains(c))
+                    .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString();
+        }
+        return options.caseSensitive() ? kept : kept.toLowerCase(Locale.ROOT);
     }
 
     /** Splits text into lowercase words. */
     private static List<String> words(String text) {
-        return words(text, false);
+        return words(text, SearchOptions.DEFAULT);
     }
 
     /** Splits text into words, lowercased unless case matters. */
-    private static List<String> words(String text, boolean cs) {
+    private static List<String> words(String text, SearchOptions options) {
         if (text == null || text.isBlank()) {
             return List.of();
         }
         return Arrays.stream(WHITESPACE.split(text.strip()))
                 .filter(w -> !w.isEmpty())
-                .map(w -> fold(w, cs))
+                .map(w -> norm(w, options))
+                .filter(w -> !w.isEmpty())
                 .toList();
     }
 

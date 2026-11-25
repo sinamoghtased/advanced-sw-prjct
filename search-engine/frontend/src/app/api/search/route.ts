@@ -3,5 +3,5 @@ import { forwardToEngine } from "@/services/engine/backend";
 
 /** Returns the pages of an index that match a search. */
 export async function GET(request: NextRequest) {
-  return forwardToEngine("/search", request.nextUrl.searchParams, ["index", "q", "mode", "case", "offset", "limit"]);
+  return forwardToEngine("/search", request.nextUrl.searchParams, ["index", "q", "mode", "case", "symbols", "offset", "limit"]);
 }
