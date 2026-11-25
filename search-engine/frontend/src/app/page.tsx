@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import ResultLink from "@/components/result-link";
 import SearchBox from "@/components/search-box";
 import { getFromEngine } from "@/services/engine/backend";
 import { type IngestResult, addWebPages, webSourceNames } from "@/services/web-search";
@@ -198,7 +199,7 @@ function Results({
       ) : (
         <ol className="flex flex-col gap-7">
           {response.results.map((result) => (
-            <ResultItem key={result.line} result={result} words={words} />
+            <ResultItem key={result.line} result={result} words={words} index={index} />
           ))}
         </ol>
       )}
@@ -248,7 +249,7 @@ function Results({
   );
 }
 
-function ResultItem({ result, words }: { result: SearchResult; words: string[] }) {
+function ResultItem({ result, words, index }: { result: SearchResult; words: string[]; index: string }) {
   // Pages from the web are stored as "title: description".
   const split = /^(.+?):\s(.+)$/u.exec(result.text);
   const title = <Highlighted text={split ? split[1] : result.text} words={words} />;
@@ -258,14 +259,13 @@ function ResultItem({ result, words }: { result: SearchResult; words: string[] }
       {result.url && <p className="truncate text-sm text-zinc-500">{breadcrumb(result.url)}</p>}
       <h2 className="text-lg leading-snug">
         {result.url && /^https?:\/\//i.test(result.url) ? (
-          <a
-            href={result.url}
-            target="_blank"
-            rel="noopener noreferrer"
+          <ResultLink
+            url={result.url}
+            index={index}
             className="text-blue-700 underline-offset-2 hover:underline dark:text-blue-400"
           >
             {title}
-          </a>
+          </ResultLink>
         ) : (
           title
         )}
