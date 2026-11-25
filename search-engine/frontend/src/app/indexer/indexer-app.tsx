@@ -168,7 +168,7 @@ export default function IndexerApp() {
       }
     } catch (e) {
       if ((e as Error).name !== "AbortError") {
-        dispatch({ type: "fail", message: "The connection to Quickdex was lost. Try again." });
+        dispatch({ type: "fail", message: "The connection to Cyberminer was lost. Try again." });
       }
     }
   }

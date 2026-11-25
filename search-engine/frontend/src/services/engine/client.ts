@@ -114,5 +114,5 @@ export async function errorMessage(response: Response): Promise<string> {
   } catch {
     // Not JSON; fall through.
   }
-  return `Quickdex could not complete the request (HTTP ${response.status}). Try again.`;
+  return `Cyberminer could not complete the request (HTTP ${response.status}). Try again.`;
 }

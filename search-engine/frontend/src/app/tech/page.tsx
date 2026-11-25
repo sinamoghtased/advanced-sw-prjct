@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Tech · Quickdex",
-  description: "Technologies used in Quickdex, mapped to the architecture rationale behind each one.",
+  title: "Tech · Cyberminer",
+  description: "Technologies used in Cyberminer and the Quickdex engine, mapped to the architecture rationale behind each one.",
 };
 
 const rows: [string, string, string][] = [

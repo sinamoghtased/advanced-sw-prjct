@@ -22,7 +22,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-10 border-b border-black/[.08] bg-background/80 backdrop-blur dark:border-white/[.145]">
       <nav className="mx-auto flex min-h-14 w-full max-w-5xl flex-wrap items-center justify-between gap-x-6 px-4 sm:px-6">
         <Link href="/" className="py-3 font-semibold tracking-tight">
-          Quickdex
+          Cyberminer
         </Link>
         <div className="-mx-2.5 flex items-center gap-0.5 overflow-x-auto text-sm sm:mx-0 sm:gap-2">
           {tabs.map((tab) => {

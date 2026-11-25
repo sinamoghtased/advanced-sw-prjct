@@ -49,7 +49,7 @@ export async function generateMetadata({
   searchParams: SearchParams;
 }): Promise<Metadata> {
   const query = first((await searchParams).q).trim();
-  return { title: query ? `${query} · Quickdex Search` : "Quickdex Search" };
+  return { title: query ? `${query} · Cyberminer` : "Cyberminer" };
 }
 
 export default async function SearchPage({ searchParams }: { searchParams: SearchParams }) {
@@ -111,7 +111,7 @@ async function Home({ index, settings }: { index: string; settings: SearchSettin
           <Wordmark />
         </h1>
         <p className="text-zinc-600 dark:text-zinc-400">
-          A search engine built on a Key Word In Context index.
+          A web search engine built on the Quickdex Key Word In Context index.
         </p>
       </div>
       <SearchBox query="" index={index} settings={settings} large />
@@ -143,6 +143,13 @@ async function Home({ index, settings }: { index: string; settings: SearchSettin
           ))}
         </div>
       )}
+      <p className="text-sm text-zinc-500">
+        Powered by the{" "}
+        <Link href="/about" className="underline underline-offset-2">
+          Quickdex
+        </Link>{" "}
+        KWIC engine.
+      </p>
     </main>
   );
 }
@@ -380,7 +387,7 @@ function listNames(names: string[]): string {
 function Wordmark() {
   return (
     <>
-      Quick<span className="text-blue-600 dark:text-blue-400">dex</span>
+      Cyber<span className="text-blue-600 dark:text-blue-400">miner</span>
     </>
   );
 }

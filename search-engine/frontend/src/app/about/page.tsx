@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "About · Quickdex",
+  title: "About · Cyberminer",
   description: "Quickdex: a KWIC indexing search engine built for CS 6362 at UT Dallas.",
 };
 

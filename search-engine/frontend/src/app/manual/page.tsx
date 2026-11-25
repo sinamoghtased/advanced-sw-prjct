@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Manual · Quickdex",
-  description: "How to use Cyberminer on Quickdex: searching, search settings, suggestions, admin tools, and the Indexer tab.",
+  title: "Manual · Cyberminer",
+  description: "How to use Cyberminer: searching, search settings, suggestions, admin tools, and the Indexer tab.",
 };
 
 const results = [
@@ -55,10 +55,10 @@ export default function ManualPage() {
           User manual &middot; preliminary
         </p>
         <h1 className="max-w-2xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-          How to use Quickdex.
+          How to use Cyberminer.
         </h1>
         <p className="max-w-2xl text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-          Cyberminer is a web search engine built on Quickdex&rsquo;s Key Word In Context (KWIC)
+          Cyberminer is a web search engine built on the Quickdex Key Word In Context (KWIC)
           index: every word is rotated to the front once, and those rotations are sorted
           alphabetically. That&rsquo;s why a search word must <em>start</em> a word on the page, not
           just appear inside it. Results come from the engine&rsquo;s own built-in index; online

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import IndexerApp from "./indexer-app";
 
 export const metadata: Metadata = {
-  title: "Indexer · Quickdex",
+  title: "Indexer · Cyberminer",
   description:
     "Build a KWIC index from your own text and watch its circular shifts and alphabetized entries update line by line.",
 };
