@@ -15,6 +15,10 @@ const rows: [string, string, string][] = [
   ["Maven / npm", "Reusability", "Independent builds."],
   ["Docker", "Enhanceability", "Runs anywhere."],
   ["Vercel + Render", "Modifiability", "One env var swaps hosts."],
+  ["NoiseFilter component", "Adaptability", "Noise words change in one place."],
+  ["ResultOrder, SearchOptions", "Adaptability", "A new order or setting touches one place."],
+  ["Settings in the URL", "Configurability", "A shared link keeps every setting."],
+  ["Admin key (env variable)", "Configurability", "Set per host, never in the code."],
   ["TypeScript, Tailwind", "—", "Frontend tooling."],
 ];
 
@@ -29,7 +33,7 @@ export default function TechPage() {
           Technologies mapped to the rationale
         </h1>
         <p className="max-w-2xl text-zinc-600 dark:text-zinc-400">
-          Each choice, mapped to the goal it serves.
+          Each choice in Cyberminer and its Quickdex KWIC engine, mapped to the goal it serves.
         </p>
       </div>
 
