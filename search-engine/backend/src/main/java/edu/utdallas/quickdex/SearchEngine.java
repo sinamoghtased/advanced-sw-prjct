@@ -45,10 +45,16 @@ public final class SearchEngine {
 
     private final Output output;
     private final OutputMedium medium;
+    private final PageStats stats;
 
     public SearchEngine(Output output, OutputMedium medium) {
+        this(output, medium, new PageStats());
+    }
+
+    public SearchEngine(Output output, OutputMedium medium, PageStats stats) {
         this.output = output;
         this.medium = medium;
+        this.stats = stats;
     }
 
     /**
@@ -217,6 +223,16 @@ public final class SearchEngine {
                 .thenComparing(m -> !m.leading)
                 .thenComparing(m -> m.original.text().toLowerCase(Locale.ROOT))
                 .thenComparingInt(m -> m.original.lineNumber()));
+        // The order only rearranges the matching pages; ties keep their relevance order.
+        Comparator<LineMatch> alphabetical = Comparator.comparing(m -> m.original.text().toLowerCase(Locale.ROOT));
+        switch (options.order()) {
+            case RELEVANCE -> { }
+            case ALPHABETICAL -> ranked.sort(alphabetical);
+            case CLICKS -> ranked.sort(Comparator.comparingInt((LineMatch m) -> stats.clicks(m.original.url()))
+                    .reversed().thenComparing(alphabetical));
+            case BID -> ranked.sort(Comparator.comparingInt((LineMatch m) -> stats.bid(m.original.url()))
+                    .reversed().thenComparing(alphabetical));
+        }
         List<SearchResult> results = new ArrayList<>(ranked.size());
         for (LineMatch line : ranked) {
             KwicEntry original = line.original;

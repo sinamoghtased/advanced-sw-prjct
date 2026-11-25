@@ -33,6 +33,7 @@ public final class MasterControl {
     private final Alphabetizer alphabetizer;
     private final Output output;
     private final SearchEngine searchEngine;
+    private final PageStats pageStats = new PageStats();
     private final LoggingMedium loggingMedium;
 
     /** A summary of one run, for the caller and the log. */
@@ -51,7 +52,7 @@ public final class MasterControl {
         NoiseFilter filter = NoiseFilter.standard();
         this.alphabetizer = new Alphabetizer(circularShift, order, filter);
         this.output = new Output(alphabetizer, circularShift, loggingMedium, filter);
-        this.searchEngine = new SearchEngine(output, loggingMedium);
+        this.searchEngine = new SearchEngine(output, loggingMedium, pageStats);
     }
 
     /**
@@ -92,6 +93,16 @@ public final class MasterControl {
     /** Searches the index with the user's options and shows the matching pages. */
     public void search(String keyword, SearchOptions options) {
         searchEngine.setSearchEngine(keyword, options);
+    }
+
+    /** Counts a click on a result's URL, for ordering results by most clicks. */
+    public void recordClick(String url) {
+        pageStats.recordClick(url);
+    }
+
+    /** Sets a URL's bid, for ordering results by highest bid. */
+    public void setBid(String url, int amount) {
+        pageStats.setBid(url, amount);
     }
 
     /** Suggests up to {@code limit} searches that complete {@code typed}. */

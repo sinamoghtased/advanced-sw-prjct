@@ -238,4 +238,66 @@ class SearchEngineTest {
         control.search("m-an", SearchOptions.DEFAULT.withIgnoredSymbols("-"));
         assertEquals(3, medium.results.size());
     }
+
+    private MasterControl pagesWithUrls() {
+        MasterControl pages = new MasterControl(new TextInputMedium("""
+                http://zebra.example.com Sorting algorithms
+                http://apple.example.com Sorting data
+                http://mango.example.com Sorting lists
+                """), medium);
+        pages.run();
+        return pages;
+    }
+
+    private List<String> urls(MasterControl pages, ResultOrder order) {
+        pages.search("sorting", SearchOptions.DEFAULT.withOrder(order));
+        return medium.results.stream().map(SearchResult::url).toList();
+    }
+
+    @Test
+    void ordersResultsAlphabetically() {
+        // A to Z by the page's text, not by its URL.
+        assertEquals(List.of("http://zebra.example.com", "http://apple.example.com", "http://mango.example.com"),
+                urls(pagesWithUrls(), ResultOrder.ALPHABETICAL));
+        assertEquals(List.of("Sorting algorithms", "Sorting data", "Sorting lists"),
+                medium.results.stream().map(SearchResult::text).toList());
+    }
+
+    @Test
+    void ordersResultsByMostClicks() {
+        MasterControl pages = pagesWithUrls();
+        pages.recordClick("http://mango.example.com");
+        pages.recordClick("http://mango.example.com");
+        pages.recordClick("http://zebra.example.com");
+        assertEquals(List.of("http://mango.example.com", "http://zebra.example.com", "http://apple.example.com"),
+                urls(pages, ResultOrder.CLICKS));
+    }
+
+    @Test
+    void ordersResultsByHighestBid() {
+        MasterControl pages = pagesWithUrls();
+        pages.setBid("http://apple.example.com", 10);
+        pages.setBid("http://zebra.example.com", 25);
+        assertEquals(List.of("http://zebra.example.com", "http://apple.example.com", "http://mango.example.com"),
+                urls(pages, ResultOrder.BID));
+    }
+
+    @Test
+    void everyOrderFindsTheSameUrls() {
+        MasterControl pages = pagesWithUrls();
+        pages.recordClick("http://mango.example.com");
+        pages.setBid("http://apple.example.com", 4);
+        java.util.Set<String> expected = java.util.Set.copyOf(urls(pages, ResultOrder.RELEVANCE));
+        for (ResultOrder order : ResultOrder.values()) {
+            assertEquals(expected, java.util.Set.copyOf(urls(pages, order)), order.name());
+        }
+        assertEquals(3, expected.size());
+    }
+
+    @Test
+    void readsOrderNamesInAnyCase() {
+        assertEquals(ResultOrder.CLICKS, ResultOrder.parse("Clicks").orElseThrow());
+        assertEquals(ResultOrder.BID, ResultOrder.parse(" bid ").orElseThrow());
+        assertTrue(ResultOrder.parse("newest").isEmpty());
+    }
 }
