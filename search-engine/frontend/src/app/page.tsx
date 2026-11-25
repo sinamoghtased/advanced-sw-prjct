@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AdminProvider, AdminToggle, ResultAdmin } from "@/components/admin";
 import ResultLink from "@/components/result-link";
 import SearchBox from "@/components/search-box";
 import { getFromEngine } from "@/services/engine/backend";
@@ -167,13 +168,16 @@ function Results({
   const time = millis < 1000 ? `${millis.toFixed(1)} ms` : `${(millis / 1000).toFixed(2)} s`;
 
   return (
-    <>
-      <p className="text-sm text-zinc-500">
-        {response.total.toLocaleString("en-US")} {response.total === 1 ? "result" : "results"} ({time})
-        · searched {response.pages.toLocaleString("en-US")} pages and{" "}
-        {response.entries.toLocaleString("en-US")} index entries
-        {live && live.added > 0 && ` · ${live.added} new from ${listNames(live.used)}`}
-      </p>
+    <AdminProvider>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-zinc-500">
+          {response.total.toLocaleString("en-US")} {response.total === 1 ? "result" : "results"} ({time})
+          · searched {response.pages.toLocaleString("en-US")} pages and{" "}
+          {response.entries.toLocaleString("en-US")} index entries
+          {live && live.added > 0 && ` · ${live.added} new from ${listNames(live.used)}`}
+        </p>
+        <AdminToggle />
+      </div>
       {live && live.failed.length > 0 && (
         <p className="text-sm text-amber-700 dark:text-amber-300">
           {listNames(live.failed)} did not respond; showing pages from the other sources and the
@@ -245,7 +249,7 @@ function Results({
           )}
         </nav>
       )}
-    </>
+    </AdminProvider>
   );
 }
 
@@ -303,6 +307,7 @@ function ResultItem({ result, words, index }: { result: SearchResult; words: str
           ))}
         </p>
       )}
+      {result.url && <ResultAdmin url={result.url} index={index} />}
     </li>
   );
 }
