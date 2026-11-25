@@ -302,6 +302,17 @@ class EngineServerTest {
     }
 
     @Test
+    void answersAVeryLargeUploadInsteadOfResettingTheConnection() throws Exception {
+        // The server stops reading at its limit; the client must still get the 413, not a reset.
+        HttpResponse<String> response = post("a".repeat(6_000_000));
+        assertEquals(413, response.statusCode());
+        HttpResponse<String> pages = client.send(HttpRequest.newBuilder(uri("/pages"))
+                .POST(HttpRequest.BodyPublishers.ofString("a".repeat(6_000_000), StandardCharsets.UTF_8)).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(400, pages.statusCode());
+    }
+
+    @Test
     void reportsAnUnknownIndex() throws Exception {
         HttpResponse<String> response = get("/search?index=nope&q=a");
         assertEquals(404, response.statusCode());

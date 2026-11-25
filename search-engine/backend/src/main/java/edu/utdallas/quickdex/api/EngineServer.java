@@ -80,6 +80,8 @@ public final class EngineServer {
     static final int MAX_DELAY_MILLIS = 2_000;
     static final int MAX_BID = 1_000_000;
     private static final int MAX_PAGE_BATCH_BYTES = 1_000_000;
+    /** How much of an oversized upload is read and thrown away so the client can still read the error. */
+    private static final long MAX_DISCARD_BYTES = 8_000_000;
 
     private final HttpServer server;
     private final IndexSession webIndex;
@@ -293,6 +295,9 @@ public final class EngineServer {
 
     private void addPages(HttpExchange exchange) throws IOException {
         byte[] bytes = exchange.getRequestBody().readNBytes(MAX_PAGE_BATCH_BYTES + 1);
+        if (bytes.length > MAX_PAGE_BATCH_BYTES) {
+            discardRestOfRequest(exchange);
+        }
         String text = new String(bytes, StandardCharsets.UTF_8);
         Optional<String> problem = bytes.length > MAX_PAGE_BATCH_BYTES
                 ? Optional.of("The pages exceed the 1 MB request limit.")
@@ -344,6 +349,7 @@ public final class EngineServer {
         }
         byte[] bytes = exchange.getRequestBody().readNBytes(Input.MAX_REQUEST_BYTES + 1);
         if (bytes.length > Input.MAX_REQUEST_BYTES) {
+            discardRestOfRequest(exchange);
             send(exchange, 413, "application/json",
                     Json.error("The input exceeds 10,000 characters. Remove some text and try again."));
             return;
@@ -643,6 +649,24 @@ public final class EngineServer {
             params.put(key, value);
         }
         return params;
+    }
+
+    /**
+     * Reads and throws away what is left of an oversized request body, up to a limit. If the server
+     * answered while the client was still sending, some systems reset the connection and the client
+     * never saw the error message.
+     */
+    private static void discardRestOfRequest(HttpExchange exchange) throws IOException {
+        byte[] buffer = new byte[8192];
+        long total = 0;
+        InputStream body = exchange.getRequestBody();
+        while (total < MAX_DISCARD_BYTES) {
+            int read = body.read(buffer);
+            if (read < 0) {
+                break;
+            }
+            total += read;
+        }
     }
 
     private static long parseLong(String value, long fallback) {
