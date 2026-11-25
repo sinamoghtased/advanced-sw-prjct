@@ -91,6 +91,27 @@ class EngineServerTest {
     }
 
     @Test
+    void searchesByOrAndNotModes() throws Exception {
+        String id = indexId(post("Descent of Man\nThe Ascent of Man\nMan in the Middle").body());
+        String base = "/search?index=" + id + "&q=";
+        String words = URLEncoder.encode("descent ascent", StandardCharsets.UTF_8);
+        assertTrue(get(base + words).body().contains("\"total\":2,"), "OR is the default");
+        assertTrue(get(base + words + "&mode=or").body().contains("\"total\":2,"));
+        assertTrue(get(base + words + "&mode=AND").body().contains("\"total\":0,"));
+        String notWords = URLEncoder.encode("man descent", StandardCharsets.UTF_8);
+        String not = get(base + notWords + "&mode=not").body();
+        assertTrue(not.contains("\"total\":2,"), not);
+        assertTrue(!not.contains("Descent of Man"), not);
+    }
+
+    @Test
+    void rejectsAnUnknownSearchMode() throws Exception {
+        HttpResponse<String> response = get("/search?q=sort&mode=xor");
+        assertEquals(400, response.statusCode());
+        assertTrue(response.body().contains("OR, AND or NOT"), response.body());
+    }
+
+    @Test
     void searchesTheBuiltInWebIndexByDefault() throws Exception {
         HttpResponse<String> stats = get("/stats");
         assertEquals(200, stats.statusCode());

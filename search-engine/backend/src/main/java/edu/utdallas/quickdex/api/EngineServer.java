@@ -8,6 +8,7 @@ import edu.utdallas.quickdex.MasterControl;
 import edu.utdallas.quickdex.Output;
 import edu.utdallas.quickdex.PlacedEntry;
 import edu.utdallas.quickdex.QueueInputMedium;
+import edu.utdallas.quickdex.SearchMode;
 import edu.utdallas.quickdex.SearchResult;
 import edu.utdallas.quickdex.TextInputMedium;
 import java.io.IOException;
@@ -384,6 +385,11 @@ public final class EngineServer {
         String words = params.getOrDefault("q", "");
         int offset = (int) Math.max(0, parseLong(params.get("offset"), 0));
         int limit = (int) Math.min(MAX_LIMIT, Math.max(1, parseLong(params.get("limit"), 10)));
+        Optional<SearchMode> mode = SearchMode.parse(params.getOrDefault("mode", "or"));
+        if (mode.isEmpty()) {
+            send(exchange, 400, "application/json", Json.error("The search mode must be OR, AND or NOT."));
+            return;
+        }
 
         long start = System.nanoTime();
         WebOutputMedium.SearchResults found;
@@ -393,7 +399,7 @@ public final class EngineServer {
                 // promises matches for real keywords; browsing is a separate, additive view).
                 found = browseAll(session);
             } else {
-                session.control.search(words);
+                session.control.search(words, mode.get());
                 found = session.medium.takeResults();
             }
         }
