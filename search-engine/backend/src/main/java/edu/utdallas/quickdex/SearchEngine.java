@@ -145,28 +145,29 @@ public final class SearchEngine {
             return word;
         }
         int allowed = word.length() >= LONG_WORD ? 2 : 1;
-        String best = word;
-        int bestDistance = allowed + 1;
-        int bestCount = 0;
+        String best = null;
+        int[] bestKey = null;
         for (Map.Entry<String, Integer> candidate : vocabulary.entrySet()) {
             String v = candidate.getKey();
-            int distance = editDistance(word, v);
+            int whole = editDistance(word, v);
+            int distance = whole;
             if (partial) {
                 for (int length = Math.max(1, word.length() - 1); length <= Math.min(v.length(), word.length() + 1); length++) {
                     distance = Math.min(distance, editDistance(word, v.substring(0, length)));
                 }
             }
-            boolean better = distance < bestDistance
-                    || (distance == bestDistance && distance <= allowed
-                    && (candidate.getValue() > bestCount
-                    || (candidate.getValue() == bestCount && v.compareTo(best) < 0)));
-            if (distance <= allowed && better) {
+            if (distance > allowed) {
+                continue;
+            }
+            // Closest first; then the word closest to the whole typed word; then the more common word.
+            int[] key = {distance, whole, -candidate.getValue()};
+            if (best == null || Arrays.compare(key, bestKey) < 0
+                    || (Arrays.equals(key, bestKey) && v.compareTo(best) < 0)) {
                 best = v;
-                bestDistance = distance;
-                bestCount = candidate.getValue();
+                bestKey = key;
             }
         }
-        return best;
+        return best == null ? word : best;
     }
 
     /** The number of insertions, deletions, substitutions and swaps of neighbors that turn one word into the other. */

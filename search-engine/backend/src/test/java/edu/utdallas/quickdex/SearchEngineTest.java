@@ -336,4 +336,13 @@ class SearchEngineTest {
         assertEquals(2, SearchEngine.editDistance("sftwre", "software"));
         assertEquals(0, SearchEngine.editDistance("man", "man"));
     }
+
+    @Test
+    void prefersTheWordClosestToWhatWasTypedWhenSeveralFit() {
+        MasterControl sorts = new MasterControl(new TextInputMedium(
+                "Merge sort: a stable sorting algorithm\nSorted list\nSorted order"), medium);
+        sorts.run();
+        // "srot" is one typo from the start of "sort", "sorting" and "sorted"; "sort" is the closest word.
+        assertEquals(List.of("merge sort", "merge sort a stable"), sorts.suggest("merge srot", 8));
+    }
 }
