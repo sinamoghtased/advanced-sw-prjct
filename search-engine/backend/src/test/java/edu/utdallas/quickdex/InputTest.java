@@ -1,6 +1,7 @@
 package edu.utdallas.quickdex;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -88,5 +89,36 @@ class InputTest {
     @Test
     void rejectsInputWithOnlyUrls() {
         assertTrue(Input.validate("https://a.example\nhttp://b.example").orElseThrow().contains("only URLs"));
+    }
+
+    @Test
+    void acceptsPageUrlsThatFollowTheGrammar() {
+        assertTrue(Input.isPageUrl("http://www.utdallas.edu"));
+        assertTrue(Input.isPageUrl("http://utdallas.edu"));
+        assertTrue(Input.isPageUrl("https://en.wikipedia.org/wiki/Software_architecture"));
+        assertTrue(Input.isPageUrl("http://www.cs.utdallas.edu/people?x=1"));
+        assertTrue(Input.isPageUrl("HTTP://Example1.NET"));
+    }
+
+    @Test
+    void rejectsPageUrlsOutsideTheGrammar() {
+        assertFalse(Input.isPageUrl(null));
+        assertFalse(Input.isPageUrl("utdallas.edu"));
+        assertFalse(Input.isPageUrl("ftp://www.utdallas.edu"));
+        assertFalse(Input.isPageUrl("http://edu"));
+        assertFalse(Input.isPageUrl("http://nasa.gov"));
+        assertFalse(Input.isPageUrl("http://www.example.co.uk"));
+        assertFalse(Input.isPageUrl("http://www.git-scm.com"));
+        assertFalse(Input.isPageUrl("http://www.site.dev"));
+        assertFalse(Input.isPageUrl("http://www.site.edu extra"));
+    }
+
+    @Test
+    void aPageNeedsAGrammarUrlAndADescription() {
+        assertTrue(Input.isPage("http://www.utdallas.edu UT Dallas home"));
+        assertTrue(Input.isPage("UT Dallas home https://www.utdallas.edu"));
+        assertFalse(Input.isPage("http://www.utdallas.edu"));
+        assertFalse(Input.isPage("UT Dallas home"));
+        assertFalse(Input.isPage("https://a.example UT Dallas home"));
     }
 }

@@ -22,7 +22,7 @@ class OutputTest {
 
         assertEquals(3, medium.updates.size());
         assertEquals(List.of(1, 2, 3), medium.updates.stream().map(RecordingMedium.Update::lineNumber).toList());
-        assertEquals(List.of(3, 7, 11), medium.updates.stream().map(RecordingMedium.Update::indexSize).toList());
+        assertEquals(List.of(2, 4, 7), medium.updates.stream().map(RecordingMedium.Update::indexSize).toList());
         // Inserting each update's entries at their positions gives exactly the final index.
         assertEquals(RecordingMedium.texts(control.index()), RecordingMedium.texts(medium.shown));
     }
@@ -42,7 +42,6 @@ class OutputTest {
         assertEquals("""
                 Descent\tof Man\t1\thttps://a.example
                 Man\tDescent of\t1\thttps://a.example
-                of\tMan Descent\t1\thttps://a.example
                 """, control.export(Output.Format.TEXT));
     }
 

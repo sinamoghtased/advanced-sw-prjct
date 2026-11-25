@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AdminProvider, AdminToggle, ResultAdmin } from "@/components/admin";
+import ResultLink from "@/components/result-link";
 import SearchBox from "@/components/search-box";
 import { getFromEngine } from "@/services/engine/backend";
 import { type IngestResult, addWebPages, webSourceNames } from "@/services/web-search";
@@ -8,8 +10,13 @@ import {
   type SearchResult,
   searchWords,
 } from "@/services/engine/client";
+import {
+  type SearchSettings,
+  addSettingsToParams,
+  engineParams,
+  settingsFromParams,
+} from "@/services/engine/settings";
 
-const PAGE_SIZE = 10;
 const SHOWN_MATCHES = 2;
 const SUGGESTIONS = [
   "software architecture",
@@ -26,10 +33,11 @@ function first(value: string | string[] | undefined): string {
   return (Array.isArray(value) ? value[0] : value) ?? "";
 }
 
-function href(query: string, index: string, page = 1): string {
+function href(query: string, index: string, settings: SearchSettings, page = 1): string {
   const params = new URLSearchParams();
   if (query) params.set("q", query);
   if (index) params.set("index", index);
+  addSettingsToParams(params, settings);
   if (page > 1) params.set("page", String(page));
   const search = params.toString();
   return search ? `/?${search}` : "/";
@@ -41,19 +49,20 @@ export async function generateMetadata({
   searchParams: SearchParams;
 }): Promise<Metadata> {
   const query = first((await searchParams).q).trim();
-  return { title: query ? `${query} · Quickdex Search` : "Quickdex Search" };
+  return { title: query ? `${query} · Cyberminer` : "Cyberminer" };
 }
 
 export default async function SearchPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const query = first(params.q).trim();
   const index = first(params.index);
+  const settings = settingsFromParams({ get: (name) => first(params[name]) || null });
   const page = Math.max(1, Number.parseInt(first(params.page), 10) || 1);
 
   // No index: show the landing page. With an index but no query: browse every page in it,
   // instead of an empty search box, since there's no obvious default word to search for.
   if (query === "" && !index) {
-    return <Home index={index} />;
+    return <Home index={index} settings={settings} />;
   }
 
   // Optional: fetch matching pages from live online sources into the web index (off by
@@ -62,37 +71,38 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
   const reply = await getFromEngine<SearchResponse>("/search", {
     q: query,
     index,
-    offset: String((page - 1) * PAGE_SIZE),
-    limit: String(PAGE_SIZE),
+    ...engineParams(settings),
+    offset: String((page - 1) * settings.size),
+    limit: String(settings.size),
   });
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-        <Link href={href("", index)} className="text-2xl font-semibold tracking-tight">
+        <Link href={href("", index, settings)} className="text-2xl font-semibold tracking-tight">
           <Wordmark />
         </Link>
-        <SearchBox key={query} query={query} index={index} />
+        <SearchBox key={query} query={query} index={index} settings={settings} />
       </div>
-      {index && <OwnIndexNotice query={query} />}
+      {index && <OwnIndexNotice query={query} settings={settings} />}
 
       {!reply.ok ? (
         <Notice>
           <p className="font-medium">{reply.error}</p>
           {reply.status === 404 && index && (
-            <Link href={href(query, "")} className="mt-2 inline-block underline underline-offset-2">
+            <Link href={href(query, "", settings)} className="mt-2 inline-block underline underline-offset-2">
               Search the web index instead
             </Link>
           )}
         </Notice>
       ) : (
-        <Results response={reply.data} query={query} index={index} page={page} live={live} />
+        <Results response={reply.data} query={query} index={index} page={page} live={live} settings={settings} />
       )}
     </main>
   );
 }
 
-async function Home({ index }: { index: string }) {
+async function Home({ index, settings }: { index: string; settings: SearchSettings }) {
   const stats = await getFromEngine<{ pages: number; entries: number }>("/stats", { index });
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-7 px-4 py-16">
@@ -101,10 +111,10 @@ async function Home({ index }: { index: string }) {
           <Wordmark />
         </h1>
         <p className="text-zinc-600 dark:text-zinc-400">
-          A search engine built on a Key Word In Context index.
+          A web search engine built on the Quickdex Key Word In Context index.
         </p>
       </div>
-      <SearchBox query="" index={index} large />
+      <SearchBox query="" index={index} settings={settings} large />
       {stats.ok ? (
         <p className="text-sm text-zinc-500">
           Searching {stats.data.pages.toLocaleString("en-US")}{" "}
@@ -118,14 +128,14 @@ async function Home({ index }: { index: string }) {
         </Notice>
       )}
       {index ? (
-        <OwnIndexNotice query="" />
+        <OwnIndexNotice query="" settings={settings} />
       ) : (
         <div className="flex max-w-2xl flex-wrap justify-center gap-2 text-sm">
           <span className="py-1.5 text-zinc-500">Try:</span>
           {SUGGESTIONS.map((s) => (
             <Link
               key={s}
-              href={href(s, "")}
+              href={href(s, "", settings)}
               className="rounded-full border border-black/[.12] px-3 py-1.5 transition-colors hover:bg-black/[.04] dark:border-white/[.2] dark:hover:bg-white/[.06]"
             >
               {s}
@@ -133,6 +143,13 @@ async function Home({ index }: { index: string }) {
           ))}
         </div>
       )}
+      <p className="text-sm text-zinc-500">
+        Powered by the{" "}
+        <Link href="/about" className="underline underline-offset-2">
+          Quickdex
+        </Link>{" "}
+        KWIC engine.
+      </p>
     </main>
   );
 }
@@ -143,26 +160,31 @@ function Results({
   index,
   page,
   live,
+  settings,
 }: {
   response: SearchResponse;
   query: string;
   index: string;
   page: number;
   live: IngestResult;
+  settings: SearchSettings;
 }) {
   const words = searchWords(query);
-  const pageCount = Math.ceil(response.total / PAGE_SIZE);
+  const pageCount = Math.ceil(response.total / settings.size);
   const millis = response.elapsedMicros / 1000;
   const time = millis < 1000 ? `${millis.toFixed(1)} ms` : `${(millis / 1000).toFixed(2)} s`;
 
   return (
-    <>
-      <p className="text-sm text-zinc-500">
-        {response.total.toLocaleString("en-US")} {response.total === 1 ? "result" : "results"} ({time})
-        · searched {response.pages.toLocaleString("en-US")} pages and{" "}
-        {response.entries.toLocaleString("en-US")} index entries
-        {live && live.added > 0 && ` · ${live.added} new from ${listNames(live.used)}`}
-      </p>
+    <AdminProvider>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-zinc-500">
+          {response.total.toLocaleString("en-US")} {response.total === 1 ? "result" : "results"} ({time})
+          · searched {response.pages.toLocaleString("en-US")} pages and{" "}
+          {response.entries.toLocaleString("en-US")} index entries
+          {live && live.added > 0 && ` · ${live.added} new from ${listNames(live.used)}`}
+        </p>
+        <AdminToggle />
+      </div>
       {live && live.failed.length > 0 && (
         <p className="text-sm text-amber-700 dark:text-amber-300">
           {listNames(live.failed)} did not respond; showing pages from the other sources and the
@@ -181,14 +203,14 @@ function Results({
             No pages match <span className="font-semibold">{query}</span>.
           </p>
           <ul className="list-disc pl-5 text-sm text-zinc-600 dark:text-zinc-400">
-            <li>Every word must start a word on the page. Try fewer words.</li>
+            <li>Every word must start a word on the page. Try fewer words or a different search mode.</li>
             <li>Try the start of a word, such as &ldquo;archit&rdquo; for architecture.</li>
           </ul>
         </div>
       ) : (
         <ol className="flex flex-col gap-7">
           {response.results.map((result) => (
-            <ResultItem key={result.line} result={result} words={words} />
+            <ResultItem key={result.line} result={result} words={words} index={index} />
           ))}
         </ol>
       )}
@@ -197,7 +219,7 @@ function Results({
         <nav aria-label="Result pages" className="flex flex-wrap items-center gap-2 py-4 text-sm">
           {page > 1 && (
             <Link
-              href={href(query, index, page - 1)}
+              href={href(query, index, settings, page - 1)}
               className="rounded-full border border-black/[.12] px-3 py-1 dark:border-white/[.2]"
             >
               Previous
@@ -217,7 +239,7 @@ function Results({
               ) : (
                 <Link
                   key={n}
-                  href={href(query, index, n)}
+                  href={href(query, index, settings, n)}
                   className="rounded-full px-3 py-1 tabular-nums hover:bg-black/[.04] dark:hover:bg-white/[.06]"
                 >
                   {n}
@@ -226,7 +248,7 @@ function Results({
             )}
           {page < pageCount && (
             <Link
-              href={href(query, index, page + 1)}
+              href={href(query, index, settings, page + 1)}
               className="rounded-full border border-black/[.12] px-3 py-1 dark:border-white/[.2]"
             >
               Next
@@ -234,11 +256,11 @@ function Results({
           )}
         </nav>
       )}
-    </>
+    </AdminProvider>
   );
 }
 
-function ResultItem({ result, words }: { result: SearchResult; words: string[] }) {
+function ResultItem({ result, words, index }: { result: SearchResult; words: string[]; index: string }) {
   // Pages from the web are stored as "title: description".
   const split = /^(.+?):\s(.+)$/u.exec(result.text);
   const title = <Highlighted text={split ? split[1] : result.text} words={words} />;
@@ -248,14 +270,13 @@ function ResultItem({ result, words }: { result: SearchResult; words: string[] }
       {result.url && <p className="truncate text-sm text-zinc-500">{breadcrumb(result.url)}</p>}
       <h2 className="text-lg leading-snug">
         {result.url && /^https?:\/\//i.test(result.url) ? (
-          <a
-            href={result.url}
-            target="_blank"
-            rel="noopener noreferrer"
+          <ResultLink
+            url={result.url}
+            index={index}
             className="text-blue-700 underline-offset-2 hover:underline dark:text-blue-400"
           >
             {title}
-          </a>
+          </ResultLink>
         ) : (
           title
         )}
@@ -271,7 +292,7 @@ function ResultItem({ result, words }: { result: SearchResult; words: string[] }
             Exact phrase
           </span>
         )}
-        <span className="text-zinc-500">KWIC:</span>
+        {result.matches.length > 0 && <span className="text-zinc-500">KWIC:</span>}
         {result.matches.slice(0, SHOWN_MATCHES).map((m, i, shown) => (
           <span key={m.id} className="max-w-full truncate">
             <span className="font-semibold text-foreground">{m.keyword}</span> {m.context}
@@ -293,6 +314,7 @@ function ResultItem({ result, words }: { result: SearchResult; words: string[] }
           ))}
         </p>
       )}
+      {result.url && <ResultAdmin url={result.url} index={index} />}
     </li>
   );
 }
@@ -330,7 +352,7 @@ function breadcrumb(url: string): string {
   }
 }
 
-function OwnIndexNotice({ query }: { query: string }) {
+function OwnIndexNotice({ query, settings }: { query: string; settings: SearchSettings }) {
   return (
     <p className="rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-900 dark:bg-amber-400/15 dark:text-amber-200">
       Searching the pages you indexed in the{" "}
@@ -338,7 +360,7 @@ function OwnIndexNotice({ query }: { query: string }) {
         Indexer
       </Link>
       .{" "}
-      <Link href={href(query, "")} className="font-medium underline underline-offset-2">
+      <Link href={href(query, "", settings)} className="font-medium underline underline-offset-2">
         Search the web index instead
       </Link>
     </p>
@@ -365,7 +387,7 @@ function listNames(names: string[]): string {
 function Wordmark() {
   return (
     <>
-      Quick<span className="text-blue-600 dark:text-blue-400">dex</span>
+      Cyber<span className="text-blue-600 dark:text-blue-400">miner</span>
     </>
   );
 }

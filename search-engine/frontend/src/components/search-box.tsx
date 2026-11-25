@@ -2,12 +2,22 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState } from "react";
+import {
+  MODE_LABELS,
+  ORDER_LABELS,
+  PAGE_SIZES,
+  RESULT_ORDERS,
+  SEARCH_MODES,
+  type SearchSettings,
+  addSettingsToParams,
+} from "@/services/engine/settings";
 
 const DEBOUNCE_MS = 120;
 
-function searchHref(query: string, index: string): string {
+function searchHref(query: string, index: string, settings: SearchSettings): string {
   const params = new URLSearchParams({ q: query });
   if (index) params.set("index", index);
+  addSettingsToParams(params, settings);
   return `/?${params}`;
 }
 
@@ -18,10 +28,12 @@ function searchHref(query: string, index: string): string {
 export default function SearchBox({
   query,
   index,
+  settings: initialSettings,
   large = false,
 }: {
   query: string;
   index: string;
+  settings: SearchSettings;
   large?: boolean;
 }) {
   const router = useRouter();
@@ -31,6 +43,8 @@ export default function SearchBox({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
+  const [settings, setSettings] = useState(initialSettings);
+  const [symbols, setSymbols] = useState(initialSettings.symbols);
 
   // Fetch suggestions for what the user has typed, after a short pause.
   useEffect(() => {
@@ -62,7 +76,13 @@ export default function SearchBox({
     setValue(trimmed);
     setOpen(false);
     setTyped(false);
-    router.push(searchHref(trimmed, index));
+    router.push(searchHref(trimmed, index, { ...settings, symbols: symbols.replace(/\s+/gu, "") }));
+  }
+
+  /** Applies a changed setting: the search that is showing is run again with it. */
+  function change(next: SearchSettings) {
+    setSettings(next);
+    if (query.trim() !== "") router.push(searchHref(query, index, next));
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -138,6 +158,87 @@ export default function SearchBox({
         </button>
       </form>
 
+      <details className="mt-2 text-sm" open={settingsAreChanged(initialSettings)}>
+        <summary className="w-fit cursor-pointer select-none px-2 py-1 text-zinc-600 dark:text-zinc-400">
+          Search settings
+        </summary>
+        <div className="mt-2 grid gap-3 rounded-lg border border-black/[.12] p-3 sm:grid-cols-2 dark:border-white/[.2]">
+          <label className="flex flex-col gap-1">
+            <span className="font-medium">Search mode</span>
+            <select
+              value={settings.mode}
+              onChange={(e) => change({ ...settings, mode: e.target.value as SearchSettings["mode"] })}
+              className="h-9 rounded-md border border-black/[.15] bg-background px-2 dark:border-white/[.25]"
+            >
+              {SEARCH_MODES.map((m) => (
+                <option key={m} value={m}>
+                  {MODE_LABELS[m]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="font-medium">Order results by</span>
+            <select
+              value={settings.order}
+              onChange={(e) => change({ ...settings, order: e.target.value as SearchSettings["order"] })}
+              className="h-9 rounded-md border border-black/[.15] bg-background px-2 dark:border-white/[.25]"
+            >
+              {RESULT_ORDERS.map((o) => (
+                <option key={o} value={o}>
+                  {ORDER_LABELS[o]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="font-medium">Results per page</span>
+            <select
+              value={settings.size}
+              onChange={(e) => change({ ...settings, size: Number(e.target.value) })}
+              className="h-9 rounded-md border border-black/[.15] bg-background px-2 dark:border-white/[.25]"
+            >
+              {PAGE_SIZES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="font-medium">Symbols to ignore</span>
+            <input
+              type="text"
+              value={symbols}
+              onChange={(e) => setSymbols(e.target.value)}
+              onBlur={() => {
+                const cleaned = symbols.replace(/\s+/gu, "");
+                if (cleaned !== settings.symbols) change({ ...settings, symbols: cleaned });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
+              placeholder="for example -&amp;&apos;"
+              className="h-9 rounded-md border border-black/[.15] bg-transparent px-2 dark:border-white/[.25]"
+            />
+          </label>
+          <label className="flex items-center gap-2 sm:col-span-2">
+            <input
+              type="checkbox"
+              checked={settings.caseSensitive}
+              onChange={(e) => change({ ...settings, caseSensitive: e.target.checked })}
+              className="size-4 accent-current"
+            />
+            <span className="font-medium">Match case</span>
+          </label>
+          <p className="text-zinc-500 sm:col-span-2">
+            With Match case on, &ldquo;Java&rdquo; does not find &ldquo;java&rdquo;. Ignored symbols are
+            left out of the search words and of the pages when matching, so ignoring &ldquo;-&rdquo; lets
+            &ldquo;selfdriving&rdquo; find &ldquo;self-driving&rdquo;.
+          </p>
+        </div>
+      </details>
+
       <ul
         id={listId}
         role="listbox"
@@ -169,6 +270,13 @@ export default function SearchBox({
       </ul>
     </div>
   );
+}
+
+/** Whether any setting differs from its default, so the panel starts open. */
+function settingsAreChanged(s: SearchSettings): boolean {
+  const params = new URLSearchParams();
+  addSettingsToParams(params, s);
+  return params.size > 0;
 }
 
 /** Shows what the user typed in normal weight and the completion in bold, like most search engines. */

@@ -9,7 +9,7 @@ const ENGINE_URL = process.env.QUICKDEX_BACKEND_URL ?? "http://localhost:8080";
 const PASSED_HEADERS = ["content-type", "content-disposition"];
 
 const OFFLINE_MESSAGE =
-  "The Quickdex backend is not running. Start it as described under \"Run locally\" in the README, then reload this page.";
+  "The Cyberminer backend is not running. Start it as described under \"Run locally\" in the README, then reload this page.";
 
 export type EngineReply<T> =
   | { ok: true; data: T }

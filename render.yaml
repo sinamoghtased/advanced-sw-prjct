@@ -8,3 +8,8 @@ services:
     dockerfilePath: ./Dockerfile
     plan: free
     healthCheckPath: /health
+    envVars:
+      # The admin key for deleting pages and setting bids. Render asks for the value when the
+      # Blueprint is first applied; it is never stored in git. Without it the server is open.
+      - key: QUICKDEX_ADMIN_KEY
+        sync: false

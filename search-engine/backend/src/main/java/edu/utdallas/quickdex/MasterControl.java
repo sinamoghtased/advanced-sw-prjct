@@ -33,6 +33,7 @@ public final class MasterControl {
     private final Alphabetizer alphabetizer;
     private final Output output;
     private final SearchEngine searchEngine;
+    private final PageStats pageStats = new PageStats();
     private final LoggingMedium loggingMedium;
 
     /** A summary of one run, for the caller and the log. */
@@ -48,9 +49,10 @@ public final class MasterControl {
         this.loggingMedium = new LoggingMedium(outputMedium);
         this.input = new Input(inputMedium, lineStorage);
         this.circularShift = new CircularShift(lineStorage);
-        this.alphabetizer = new Alphabetizer(circularShift, order);
-        this.output = new Output(alphabetizer, circularShift, loggingMedium);
-        this.searchEngine = new SearchEngine(output, loggingMedium);
+        NoiseFilter filter = NoiseFilter.standard();
+        this.alphabetizer = new Alphabetizer(circularShift, order, filter);
+        this.output = new Output(alphabetizer, circularShift, loggingMedium, filter);
+        this.searchEngine = new SearchEngine(output, loggingMedium, pageStats);
     }
 
     /**
@@ -83,9 +85,51 @@ public final class MasterControl {
         return summary;
     }
 
-    /** Searches the index and shows the matching pages on the Output Medium. */
+    /** Searches the index with the default OR mode and shows the matching pages on the Output Medium. */
     public void search(String keyword) {
         searchEngine.setSearchEngine(keyword);
+    }
+
+    /** Searches the index with the user's options and shows the matching pages. */
+    public void search(String keyword, SearchOptions options) {
+        searchEngine.setSearchEngine(keyword, options);
+    }
+
+    /** Counts a click on a result's URL, for ordering results by most clicks. */
+    public void recordClick(String url) {
+        pageStats.recordClick(url);
+    }
+
+    /** Sets a URL's bid, for ordering results by highest bid. */
+    public void setBid(String url, int amount) {
+        pageStats.setBid(url, amount);
+    }
+
+    /**
+     * Deletes an out-of-date page: its description and all its circular shifts leave the index,
+     * and its clicks and bid are forgotten (FR023). Pages added later are unaffected.
+     *
+     * @return how many lines (pages) with this URL were deleted; 0 if there was none
+     */
+    public int delete(String url) {
+        List<Integer> lines = output.findLines(url);
+        for (int line : lines) {
+            output.removeLine(line);
+        }
+        if (!lines.isEmpty()) {
+            pageStats.forget(url);
+        }
+        return lines.size();
+    }
+
+    /** Returns how many times a URL has been clicked. */
+    public int clicks(String url) {
+        return pageStats.clicks(url);
+    }
+
+    /** Returns a URL's bid. */
+    public int bid(String url) {
+        return pageStats.bid(url);
     }
 
     /** Suggests up to {@code limit} searches that complete {@code typed}. */
@@ -108,13 +152,14 @@ public final class MasterControl {
             return;
         }
         List<PlacedEntry> inserted = loggingMedium.lastInserted;
+        int lineNumber = loggingMedium.lastLine;
         String shifts = inserted.stream()
                 .map(PlacedEntry::entry)
                 .sorted((a, b) -> Integer.compare(a.id(), b.id()))
                 .map(e -> "\"" + e.text() + "\"")
                 .collect(Collectors.joining(", "));
         LOG.log(Level.INFO, "input line {0} (line {1}): {2} shifts [{3}]; index size {4}; {5} ms",
-                inputLine, inserted.get(0).entry().lineNumber(), inserted.size(), shifts,
+                inputLine, lineNumber, inserted.size(), shifts,
                 loggingMedium.lastSize, String.format(Locale.ROOT, "%.3f", (System.nanoTime() - lineStart) / 1e6));
     }
 
@@ -138,6 +183,7 @@ public final class MasterControl {
         private final OutputMedium target;
         private List<PlacedEntry> lastInserted = List.of();
         private int lastSize;
+        private int lastLine;
 
         LoggingMedium(OutputMedium target) {
             this.target = target;
@@ -145,10 +191,11 @@ public final class MasterControl {
 
         @Override
         public void displayOutput(int lineNumber, List<PlacedEntry> inserted,
-                List<KwicEntry> generated, int indexSize) {
+                List<KwicEntry> generated, List<KwicEntry> filtered, int indexSize) {
             lastInserted = inserted;
+            lastLine = lineNumber;
             lastSize = indexSize;
-            target.displayOutput(lineNumber, inserted, generated, indexSize);
+            target.displayOutput(lineNumber, inserted, generated, filtered, indexSize);
         }
 
         @Override
@@ -195,7 +242,7 @@ public final class MasterControl {
         OutputMedium console = new OutputMedium() {
             @Override
             public void displayOutput(int lineNumber, List<PlacedEntry> inserted,
-                    List<KwicEntry> generated, int indexSize) {
+                    List<KwicEntry> generated, List<KwicEntry> filtered, int indexSize) {
                 // The console shows only the final index.
             }
 

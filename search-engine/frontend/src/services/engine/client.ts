@@ -24,7 +24,7 @@ export type Summary = {
 
 export type EngineEvent =
   | { type: "start"; index: string; lines: number }
-  | { type: "update"; line: number; size: number; generated: Entry[]; inserted: Placed[] }
+  | { type: "update"; line: number; size: number; generated: Entry[]; filtered: Entry[]; inserted: Placed[] }
   | ({ type: "done" } & Summary)
   | { type: "error"; message: string };
 
@@ -114,5 +114,5 @@ export async function errorMessage(response: Response): Promise<string> {
   } catch {
     // Not JSON; fall through.
   }
-  return `Quickdex could not complete the request (HTTP ${response.status}). Try again.`;
+  return `Cyberminer could not complete the request (HTTP ${response.status}). Try again.`;
 }

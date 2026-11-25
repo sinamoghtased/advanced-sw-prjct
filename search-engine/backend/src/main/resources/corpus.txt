@@ -121,7 +121,7 @@ https://en.wikipedia.org/wiki/The_Art_of_Computer_Programming The Art of Compute
 https://en.wikipedia.org/wiki/University_of_Texas_at_Dallas The University of Texas at Dallas in Richardson, Texas
 https://www.utdallas.edu UT Dallas official website
 https://nextjs.org Next.js: the React framework for the web
-https://react.dev React: the library for web and native user interfaces
+https://en.wikipedia.org/wiki/React_(software) React: the library for web and native user interfaces
 https://nodejs.org Node.js JavaScript runtime
 https://www.typescriptlang.org TypeScript: JavaScript with syntax for types
 https://tailwindcss.com Tailwind CSS utility-first styling framework
@@ -129,7 +129,7 @@ https://vercel.com Vercel platform for deploying web apps
 https://openjdk.org OpenJDK: the open source Java development kit
 https://maven.apache.org Apache Maven: build and project management for Java
 https://junit.org JUnit: the testing framework for Java
-https://git-scm.com Git: free and open source version control
+https://en.wikipedia.org/wiki/Git Git: free and open source version control
 https://github.com GitHub: where software is built together
 https://developer.mozilla.org MDN Web Docs: documentation for web developers
 https://www.w3.org World Wide Web Consortium web standards

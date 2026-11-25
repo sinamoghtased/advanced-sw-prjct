@@ -34,6 +34,14 @@ public final class Input {
     private static final Pattern WHITESPACE = Pattern.compile("(?U)\\s+");
     private static final Pattern LINE_BREAK = Pattern.compile("\\r\\n|\\r|\\n");
 
+    /**
+     * The address a page must have to join the searchable collection (FR020): {@code http://} or
+     * {@code https://}, identifiers of letters and digits separated by dots, one of the
+     * suffixes edu, com, org or net, and an optional path. Subdomains such as {@code www} are allowed.
+     */
+    private static final Pattern PAGE_URL = Pattern.compile(
+            "(?i)https?://[a-z0-9]+(?:\\.[a-z0-9]+)*\\.(?:edu|com|org|net)(?:[/?#]\\S*)?");
+
     private final InputMedium medium;
     private final LineStorage storage;
 
@@ -71,6 +79,20 @@ public final class Input {
             return Optional.of("The input has no words, only URLs. Add some text to each line.");
         }
         return Optional.empty();
+    }
+
+    /** Whether an address meets the URL grammar for pages in the searchable collection (FR020). */
+    public static boolean isPageUrl(String url) {
+        return url != null && PAGE_URL.matcher(url).matches();
+    }
+
+    /**
+     * Whether a raw line is a page for the searchable collection: a URL that follows the page
+     * grammar plus at least one description word (FR020).
+     */
+    public static boolean isPage(String raw) {
+        String url = urlOf(raw);
+        return isPageUrl(url) && !words(raw).isEmpty();
     }
 
     /** Splits text into lines on any line break. */

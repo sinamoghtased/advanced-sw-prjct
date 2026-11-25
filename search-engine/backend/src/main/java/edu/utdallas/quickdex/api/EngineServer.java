@@ -8,6 +8,9 @@ import edu.utdallas.quickdex.MasterControl;
 import edu.utdallas.quickdex.Output;
 import edu.utdallas.quickdex.PlacedEntry;
 import edu.utdallas.quickdex.QueueInputMedium;
+import edu.utdallas.quickdex.ResultOrder;
+import edu.utdallas.quickdex.SearchMode;
+import edu.utdallas.quickdex.SearchOptions;
 import edu.utdallas.quickdex.SearchResult;
 import edu.utdallas.quickdex.TextInputMedium;
 import java.io.IOException;
@@ -49,6 +52,9 @@ import java.util.function.Consumer;
  *   <li>{@code GET /suggest?q=TYPED} suggests searches that complete what the user typed.</li>
  *   <li>{@code POST /pages} with lines of "URL description" as the body adds new pages to the
  *       web index, one line at a time; pages whose URL is already indexed are skipped.</li>
+ *   <li>{@code DELETE /pages?url=URL} deletes an out-of-date page, its description and its
+ *       shifts. {@code POST /bid} also changes things, so both need the admin key in the
+ *       {@code X-Admin-Key} header when the server has one ({@code QUICKDEX_ADMIN_KEY}).</li>
  *   <li>{@code GET /stats} returns the number of pages and entries in an index.</li>
  *   <li>{@code POST /index} with the input text as the body builds a new index and streams an
  *       update after every line, as newline-delimited JSON. The optional {@code delay}
@@ -72,10 +78,15 @@ public final class EngineServer {
     static final int MAX_SUGGESTIONS = 10;
     static final int MAX_WEB_PAGES = 50_000;
     static final int MAX_DELAY_MILLIS = 2_000;
+    static final int MAX_BID = 1_000_000;
     private static final int MAX_PAGE_BATCH_BYTES = 1_000_000;
+    /** How much of an oversized upload is read and thrown away so the client can still read the error. */
+    private static final long MAX_DISCARD_BYTES = 8_000_000;
 
     private final HttpServer server;
     private final IndexSession webIndex;
+    /** The key that admin actions need, or null if the server is open (local development). */
+    private final String adminKey;
     private final Map<String, IndexSession> indexes = new LinkedHashMap<>(16, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<String, IndexSession> eldest) {
@@ -101,23 +112,31 @@ public final class EngineServer {
         }
     }
 
-    private EngineServer(HttpServer server, IndexSession webIndex) {
+    private EngineServer(HttpServer server, IndexSession webIndex, String adminKey) {
         this.server = server;
         this.webIndex = webIndex;
+        this.adminKey = adminKey == null || adminKey.isBlank() ? null : adminKey;
         server.createContext("/health", this::health);
         server.createContext("/stats", this::stats);
         server.createContext("/suggest", this::suggest);
-        server.createContext("/pages", this::addPages);
+        server.createContext("/pages", this::pages);
         server.createContext("/index", this::index);
         server.createContext("/search", this::search);
+        server.createContext("/click", this::click);
+        server.createContext("/bid", this::bid);
         server.createContext("/export", this::export);
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
     }
 
     /** Builds the web index and starts a server on {@code port}; port 0 picks a free port. */
     public static EngineServer start(int port) throws IOException {
+        return start(port, System.getenv("QUICKDEX_ADMIN_KEY"));
+    }
+
+    /** Like {@link #start(int)}, with admin actions locked behind {@code adminKey} (open if null or blank). */
+    public static EngineServer start(int port, String adminKey) throws IOException {
         IndexSession web = buildWebIndex(loadCorpus());
-        EngineServer engine = new EngineServer(HttpServer.create(new InetSocketAddress(port), 0), web);
+        EngineServer engine = new EngineServer(HttpServer.create(new InetSocketAddress(port), 0), web, adminKey);
         engine.server.start();
         LOG.log(Level.INFO, "web index ready: {0} pages, {1} entries", web.pages, web.entries);
         return engine;
@@ -150,7 +169,11 @@ public final class EngineServer {
             QueueInputMedium queue = new QueueInputMedium();
             IndexSession web = new IndexSession(new MasterControl(queue, medium), medium);
             web.queue = queue;
-            List<String> lines = Arrays.asList(Input.splitLines(corpus));
+            List<String> lines = Arrays.stream(Input.splitLines(corpus)).filter(Input::isPage).toList();
+            if (lines.size() < Input.splitLines(corpus).length) {
+                LOG.log(Level.WARNING, "skipped {0} corpus lines that are not valid pages",
+                        Input.splitLines(corpus).length - lines.size());
+            }
             for (String line : lines) {
                 String url = Input.urlOf(line);
                 if (url != null) {
@@ -219,12 +242,62 @@ public final class EngineServer {
     }
 
     /** Adds pages fetched from the web to the web index, one line at a time. */
-    private void addPages(HttpExchange exchange) throws IOException {
-        if (!"POST".equals(exchange.getRequestMethod())) {
-            send(exchange, 405, "application/json", Json.error("Use POST to add pages."));
+    private void pages(HttpExchange exchange) throws IOException {
+        switch (exchange.getRequestMethod()) {
+            case "POST" -> addPages(exchange);
+            case "DELETE" -> deletePage(exchange);
+            default -> send(exchange, 405, "application/json", Json.error("Use POST to add pages or DELETE to delete one."));
+        }
+    }
+
+    /** Deletes an out-of-date page, its description and its shifts (FR023). */
+    private void deletePage(HttpExchange exchange) throws IOException {
+        Map<String, String> params = query(exchange);
+        if (!isAdmin(exchange)) {
+            send(exchange, 401, "application/json", Json.error("Deleting a page needs the admin key."));
             return;
         }
+        IndexSession session = find(exchange, params.get("index"), "DELETE");
+        String url = params.get("url");
+        if (session == null) {
+            return;
+        }
+        if (url == null || url.isBlank()) {
+            send(exchange, 400, "application/json", Json.error("Say which page to delete, by its URL."));
+            return;
+        }
+        int removed;
+        synchronized (session) {
+            removed = session.control.delete(url);
+            if (removed > 0) {
+                session.urls.remove(url);
+                session.pages -= removed;
+                session.entries = session.control.index().size();
+            }
+        }
+        if (removed == 0) {
+            send(exchange, 404, "application/json", Json.error("No indexed page has this URL."));
+            return;
+        }
+        send(exchange, 200, "application/json",
+                "{\"deleted\":" + removed + ",\"pages\":" + session.pages + ",\"entries\":" + session.entries + "}");
+    }
+
+    /** Whether the request carries the admin key, or the server has none. */
+    private boolean isAdmin(HttpExchange exchange) {
+        if (adminKey == null) {
+            return true;
+        }
+        String given = exchange.getRequestHeaders().getFirst("X-Admin-Key");
+        return given != null && java.security.MessageDigest.isEqual(
+                given.getBytes(StandardCharsets.UTF_8), adminKey.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private void addPages(HttpExchange exchange) throws IOException {
         byte[] bytes = exchange.getRequestBody().readNBytes(MAX_PAGE_BATCH_BYTES + 1);
+        if (bytes.length > MAX_PAGE_BATCH_BYTES) {
+            discardRestOfRequest(exchange);
+        }
         String text = new String(bytes, StandardCharsets.UTF_8);
         Optional<String> problem = bytes.length > MAX_PAGE_BATCH_BYTES
                 ? Optional.of("The pages exceed the 1 MB request limit.")
@@ -233,18 +306,31 @@ public final class EngineServer {
             send(exchange, 400, "application/json", Json.error(problem.get()));
             return;
         }
+        long bid = parseLong(query(exchange).get("bid"), 0);
+        if (bid < 0 || bid > MAX_BID) {
+            send(exchange, 400, "application/json", Json.error("The bid must be between 0 and " + MAX_BID + "."));
+            return;
+        }
         IndexSession web = webIndex;
         int added = 0;
+        int rejected = 0;
         synchronized (web) {
             List<String> fresh = new ArrayList<>();
             for (String line : Input.splitLines(text)) {
+                if (!Input.isPage(line)) {
+                    rejected++;
+                    continue;
+                }
                 String url = Input.urlOf(line);
-                if (url != null && web.pages + fresh.size() < MAX_WEB_PAGES && web.urls.add(url)) {
+                if (web.pages + fresh.size() < MAX_WEB_PAGES && web.urls.add(url)) {
                     fresh.add(line);
                 }
             }
             if (!fresh.isEmpty()) {
                 web.queue.add(fresh);
+                if (bid > 0) {
+                    fresh.forEach(line -> web.control.setBid(Input.urlOf(line), (int) bid));
+                }
                 MasterControl.RunSummary summary = web.control.run();
                 web.pages += summary.linesIndexed();
                 web.entries = summary.shifts();
@@ -252,7 +338,8 @@ public final class EngineServer {
             }
         }
         send(exchange, 200, "application/json",
-                "{\"added\":" + added + ",\"pages\":" + web.pages + ",\"entries\":" + web.entries + "}");
+                "{\"added\":" + added + ",\"pages\":" + web.pages + ",\"entries\":" + web.entries
+                        + ",\"rejected\":" + rejected + "}");
     }
 
     private void index(HttpExchange exchange) throws IOException {
@@ -262,6 +349,7 @@ public final class EngineServer {
         }
         byte[] bytes = exchange.getRequestBody().readNBytes(Input.MAX_REQUEST_BYTES + 1);
         if (bytes.length > Input.MAX_REQUEST_BYTES) {
+            discardRestOfRequest(exchange);
             send(exchange, 413, "application/json",
                     Json.error("The input exceeds 10,000 characters. Remove some text and try again."));
             return;
@@ -374,6 +462,20 @@ public final class EngineServer {
         String words = params.getOrDefault("q", "");
         int offset = (int) Math.max(0, parseLong(params.get("offset"), 0));
         int limit = (int) Math.min(MAX_LIMIT, Math.max(1, parseLong(params.get("limit"), 10)));
+        Optional<SearchMode> mode = SearchMode.parse(params.getOrDefault("mode", "or"));
+        if (mode.isEmpty()) {
+            send(exchange, 400, "application/json", Json.error("The search mode must be OR, AND or NOT."));
+            return;
+        }
+
+        Optional<ResultOrder> order = ResultOrder.parse(params.getOrDefault("order", "relevance"));
+        if (order.isEmpty()) {
+            send(exchange, 400, "application/json",
+                    Json.error("The order must be relevance, alphabetical, clicks or bid."));
+            return;
+        }
+        boolean caseSensitive = "true".equalsIgnoreCase(params.get("case"));
+        SearchOptions options = new SearchOptions(mode.get(), caseSensitive, params.get("symbols"), order.get());
 
         long start = System.nanoTime();
         WebOutputMedium.SearchResults found;
@@ -383,7 +485,7 @@ public final class EngineServer {
                 // promises matches for real keywords; browsing is a separate, additive view).
                 found = browseAll(session);
             } else {
-                session.control.search(words);
+                session.control.search(words, options);
                 found = session.medium.takeResults();
             }
         }
@@ -438,10 +540,67 @@ public final class EngineServer {
         send(exchange, 200, csv ? "text/csv" : "text/plain", csv ? "﻿" + file : file);
     }
 
-    /** Finds a finished index, or sends an error response and returns {@code null}. */
+    /** Counts a click on a result, so results can be ordered by most clicks (FR030). */
+    private void click(HttpExchange exchange) throws IOException {
+        Map<String, String> params = query(exchange);
+        IndexSession session = find(exchange, params.get("index"), "POST");
+        String url = params.get("url");
+        if (session == null) {
+            return;
+        }
+        if (url == null || url.isBlank()) {
+            send(exchange, 400, "application/json", Json.error("Say which URL was clicked."));
+            return;
+        }
+        int clicks;
+        synchronized (session) {
+            if (session == webIndex && !session.urls.contains(url)) {
+                send(exchange, 404, "application/json", Json.error("No indexed page has this URL."));
+                return;
+            }
+            session.control.recordClick(url);
+            clicks = session.control.clicks(url);
+        }
+        send(exchange, 200, "application/json", "{\"url\":" + Json.string(url) + ",\"clicks\":" + clicks + "}");
+    }
+
+    /** Sets what a page bids to be listed first when results are ordered by bid (FR030). */
+    private void bid(HttpExchange exchange) throws IOException {
+        Map<String, String> params = query(exchange);
+        if (!isAdmin(exchange)) {
+            send(exchange, 401, "application/json", Json.error("Setting a bid needs the admin key."));
+            return;
+        }
+        IndexSession session = find(exchange, params.get("index"), "POST");
+        String url = params.get("url");
+        if (session == null) {
+            return;
+        }
+        long amount = parseLong(params.get("amount"), -1);
+        if (url == null || url.isBlank() || amount < 0 || amount > MAX_BID) {
+            send(exchange, 400, "application/json",
+                    Json.error("Give the page's URL and a bid between 0 and " + MAX_BID + "."));
+            return;
+        }
+        synchronized (session) {
+            if (session == webIndex && !session.urls.contains(url)) {
+                send(exchange, 404, "application/json", Json.error("No indexed page has this URL."));
+                return;
+            }
+            session.control.setBid(url, (int) amount);
+        }
+        send(exchange, 200, "application/json", "{\"url\":" + Json.string(url) + ",\"bid\":" + amount + "}");
+    }
+
+    /** Finds a finished index for a GET request, or sends an error response and returns {@code null}. */
     private IndexSession find(HttpExchange exchange, String id) throws IOException {
-        if (!"GET".equals(exchange.getRequestMethod())) {
-            send(exchange, 405, "application/json", Json.error("Use GET."));
+        return find(exchange, id, "GET");
+    }
+
+    /** Finds a finished index, or sends an error response and returns {@code null}. */
+    private IndexSession find(HttpExchange exchange, String id, String method) throws IOException {
+        if (!method.equals(exchange.getRequestMethod())) {
+            send(exchange, 405, "application/json", Json.error("Use " + method + "."));
             return null;
         }
         if (id == null || id.isBlank()) {
@@ -490,6 +649,24 @@ public final class EngineServer {
             params.put(key, value);
         }
         return params;
+    }
+
+    /**
+     * Reads and throws away what is left of an oversized request body, up to a limit. If the server
+     * answered while the client was still sending, some systems reset the connection and the client
+     * never saw the error message.
+     */
+    private static void discardRestOfRequest(HttpExchange exchange) throws IOException {
+        byte[] buffer = new byte[8192];
+        long total = 0;
+        InputStream body = exchange.getRequestBody();
+        while (total < MAX_DISCARD_BYTES) {
+            int read = body.read(buffer);
+            if (read < 0) {
+                break;
+            }
+            total += read;
+        }
     }
 
     private static long parseLong(String value, long fallback) {

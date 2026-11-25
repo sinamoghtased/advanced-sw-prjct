@@ -22,8 +22,10 @@ import java.util.regex.Pattern;
  * <p>Every word of a line is the keyword of one index entry, so a search needs only the
  * index: a line matches when each search word starts one of the line's keywords, ignoring
  * case (FR9.0). Common words such as "the" and "who" are ignored unless the search has
- * nothing else. If no line has every word, the lines with the most of them are shown
- * instead, with the missing words listed. Lines are ranked by these rules, in order:
+ * nothing else. The {@link SearchMode} says how the words combine: OR (the default) shows
+ * lines with any of them, with the missing words listed; AND shows lines with all of them;
+ * NOT shows lines with the first word and none of the others. Lines are ranked by these
+ * rules, in order:
  * <ol>
  *   <li>lines whose title (the text before the first colon, or the whole line) is exactly the
  *       search words;</li>
@@ -38,18 +40,27 @@ public final class SearchEngine {
 
     private static final Pattern WHITESPACE = Pattern.compile("(?U)\\s+");
 
-    /** Words too common to narrow a search. */
-    static final Set<String> STOP_WORDS = Set.of(
-            "a", "an", "and", "are", "as", "at", "be", "by", "can", "do", "does", "for", "from",
-            "how", "i", "in", "is", "it", "me", "my", "of", "on", "or", "that", "the", "this", "to",
-            "was", "what", "when", "where", "which", "who", "why", "with", "you", "your");
+    /** Words shorter than this are never corrected: too many index words are one typo away. */
+    private static final int MIN_TYPO_LENGTH = 3;
+
+    /** Words with this many letters or more may have two typos; shorter ones may have one. */
+    private static final int LONG_WORD = 6;
+
+    /** Words too common to narrow a search; the same words the index leaves out as noise. */
+    static final Set<String> STOP_WORDS = NoiseFilter.NOISE_WORDS;
 
     private final Output output;
     private final OutputMedium medium;
+    private final PageStats stats;
 
     public SearchEngine(Output output, OutputMedium medium) {
+        this(output, medium, new PageStats());
+    }
+
+    public SearchEngine(Output output, OutputMedium medium, PageStats stats) {
         this.output = output;
         this.medium = medium;
+        this.stats = stats;
     }
 
     /**
@@ -57,8 +68,13 @@ public final class SearchEngine {
      * words finds nothing.
      */
     public void setSearchEngine(String query) {
+        setSearchEngine(query, SearchOptions.DEFAULT);
+    }
+
+    /** Searches the index with the user's options: the mode, case, and symbols to ignore. */
+    public void setSearchEngine(String query, SearchOptions options) {
         List<KwicEntry> index = output.getOutput();
-        displayResults(query, searchKeywordMatches(query, index));
+        displayResults(query, searchKeywordMatches(query, index, options));
     }
 
     /**
@@ -69,8 +85,116 @@ public final class SearchEngine {
      * words that follow each other in the original line are used, never words that wrap
      * around from its end. Suggestions made from more shifts come first, then alphabetically;
      * a shift that starts its line (usually a page title) counts three times.
+     *
+     * <p>If there are fewer than {@code limit} completions, a mistyped word is also corrected
+     * to the closest word in the index (FR028), and the corrected text is completed the same
+     * way. "sofware arch" suggests "software architecture".
      */
     public List<String> suggestSearches(String typed, int limit) {
+        List<String> suggestions = completions(typed, limit, false);
+        if (suggestions.size() >= limit || limit <= 0) {
+            return suggestions;
+        }
+        String corrected = correctTypos(typed);
+        if (corrected == null) {
+            return suggestions;
+        }
+        List<String> all = new ArrayList<>(suggestions);
+        for (String suggestion : completions(corrected, limit, true)) {
+            if (!all.contains(suggestion) && all.size() < limit) {
+                all.add(suggestion);
+            }
+        }
+        return List.copyOf(all);
+    }
+
+    /** The typed text with each mistyped word replaced by a close word from the index, or null if none was. */
+    private String correctTypos(String typed) {
+        List<String> words = words(typed);
+        if (words.isEmpty()) {
+            return null;
+        }
+        boolean lastComplete = Character.isWhitespace(typed.codePointBefore(typed.length()));
+        Map<String, Integer> vocabulary = new HashMap<>();
+        for (KwicEntry entry : output.getOutput()) {
+            String word = stripPunctuation(entry.keyword().toLowerCase(Locale.ROOT));
+            if (!word.isEmpty()) {
+                vocabulary.merge(word, 1, Integer::sum);
+            }
+        }
+        boolean changed = false;
+        List<String> fixed = new ArrayList<>(words.size());
+        for (int i = 0; i < words.size(); i++) {
+            String word = stripPunctuation(words.get(i));
+            boolean partial = i == words.size() - 1 && !lastComplete;
+            String replacement = word.length() < MIN_TYPO_LENGTH || STOP_WORDS.contains(word)
+                    ? word : closestWord(word, partial, vocabulary);
+            changed |= !replacement.equals(word);
+            fixed.add(replacement);
+        }
+        return changed ? String.join(" ", fixed) + (lastComplete ? " " : "") : null;
+    }
+
+    /**
+     * The index word closest to a typed word, within the allowed number of typos, or the typed
+     * word itself if it is already right. A word still being typed is already right if some
+     * index word starts with it, and is compared with the starts of index words otherwise.
+     */
+    private static String closestWord(String word, boolean partial, Map<String, Integer> vocabulary) {
+        if (partial ? vocabulary.keySet().stream().anyMatch(v -> v.startsWith(word)) : vocabulary.containsKey(word)) {
+            return word;
+        }
+        int allowed = word.length() >= LONG_WORD ? 2 : 1;
+        String best = null;
+        int[] bestKey = null;
+        for (Map.Entry<String, Integer> candidate : vocabulary.entrySet()) {
+            String v = candidate.getKey();
+            int whole = editDistance(word, v);
+            int distance = whole;
+            if (partial) {
+                for (int length = Math.max(1, word.length() - 1); length <= Math.min(v.length(), word.length() + 1); length++) {
+                    distance = Math.min(distance, editDistance(word, v.substring(0, length)));
+                }
+            }
+            if (distance > allowed) {
+                continue;
+            }
+            // Closest first; then the word closest to the whole typed word; then the more common word.
+            int[] key = {distance, whole, -candidate.getValue()};
+            if (best == null || Arrays.compare(key, bestKey) < 0
+                    || (Arrays.equals(key, bestKey) && v.compareTo(best) < 0)) {
+                best = v;
+                bestKey = key;
+            }
+        }
+        return best == null ? word : best;
+    }
+
+    /** The number of insertions, deletions, substitutions and swaps of neighbors that turn one word into the other. */
+    static int editDistance(String a, String b) {
+        int[] x = a.codePoints().toArray();
+        int[] y = b.codePoints().toArray();
+        int[][] d = new int[x.length + 1][y.length + 1];
+        for (int i = 0; i <= x.length; i++) {
+            d[i][0] = i;
+        }
+        for (int j = 0; j <= y.length; j++) {
+            d[0][j] = j;
+        }
+        for (int i = 1; i <= x.length; i++) {
+            for (int j = 1; j <= y.length; j++) {
+                int cost = x[i - 1] == y[j - 1] ? 0 : 1;
+                d[i][j] = Math.min(Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1), d[i - 1][j - 1] + cost);
+                if (i > 1 && j > 1 && x[i - 1] == y[j - 2] && x[i - 2] == y[j - 1]) {
+                    d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+                }
+            }
+        }
+        return d[x.length][y.length];
+    }
+
+    /** @param includeTyped whether the typed text itself, once completed, may be suggested */
+    private List<String> completions(String typed, int limit, boolean includeTyped) {
         List<String> words = words(typed);
         if (words.isEmpty() || limit <= 0) {
             return List.of();
@@ -83,7 +207,7 @@ public final class SearchEngine {
         // A line's shifts have consecutive ids, starting with its original word order.
         Map<Integer, Integer> firstId = new HashMap<>();
         for (KwicEntry entry : index) {
-            firstId.merge(entry.lineNumber(), entry.id(), Math::min);
+            firstId.computeIfAbsent(entry.lineNumber(), n -> output.getLineOriginal(n).id());
         }
 
         Map<String, Integer> counts = new LinkedHashMap<>();
@@ -105,7 +229,7 @@ public final class SearchEngine {
             int weight = offset == 0 ? 3 : 1;
             // The typed words, with the last one completed.
             String completed = String.join(" ", shift.subList(0, typedCount));
-            if (!completed.equals(typedText)) {
+            if (includeTyped || !completed.equals(typedText)) {
                 counts.merge(completed, weight, Integer::sum);
             }
             // Extended to the next meaningful word.
@@ -143,8 +267,9 @@ public final class SearchEngine {
         return true;
     }
 
-    private List<SearchResult> searchKeywordMatches(String query, List<KwicEntry> index) {
-        List<String> terms = searchTerms(query);
+    private List<SearchResult> searchKeywordMatches(String query, List<KwicEntry> index, SearchOptions options) {
+        SearchMode mode = options.mode();
+        List<String> terms = searchTerms(query, options);
         if (terms.isEmpty()) {
             return List.of();
         }
@@ -153,7 +278,7 @@ public final class SearchEngine {
         Map<Integer, LineMatch> lines = new HashMap<>();
         for (int position = 0; position < index.size(); position++) {
             KwicEntry entry = index.get(position);
-            String keyword = entry.keyword().toLowerCase(Locale.ROOT);
+            String keyword = norm(entry.keyword(), options);
             boolean matched = false;
             for (int t = 0; t < terms.size(); t++) {
                 if (keyword.startsWith(terms.get(t))) {
@@ -166,42 +291,67 @@ public final class SearchEngine {
             if (matched) {
                 LineMatch line = lines.get(entry.lineNumber());
                 line.matches.add(new PlacedEntry(position, entry));
-                if (!line.phrase && startsWithPhrase(entry, terms)) {
+                if (!line.phrase && startsWithPhrase(entry, terms, options)) {
                     line.phrase = true;
                 }
             }
         }
-        // Keep the lines with every word; if there are none, the lines with the most words.
-        int best = lines.values().stream().mapToInt(LineMatch::foundWords).max().orElse(0);
-        lines.values().removeIf(line -> line.foundWords() < best);
+        // Keep the lines the mode accepts. Every line in the map so far has at least one word.
+        switch (mode) {
+            case OR -> { }
+            case AND -> lines.values().removeIf(line -> line.foundWords() < terms.size());
+            case NOT -> {
+                if (terms.size() > 1) {
+                    lines.values().removeIf(line -> !line.found[0] || line.foundWords() > 1);
+                } else {
+                    // One word: every line that does not have it.
+                    Map<Integer, LineMatch> without = new HashMap<>();
+                    for (int n : output.getLineNumbers()) {
+                        if (!lines.containsKey(n)) {
+                            without.put(n, new LineMatch(1));
+                        }
+                    }
+                    lines.clear();
+                    lines.putAll(without);
+                }
+            }
+        }
         if (lines.isEmpty()) {
             return List.of();
         }
 
         // Pass 2: recover each matching line's original text, its first-generated shift.
-        for (KwicEntry entry : index) {
-            LineMatch line = lines.get(entry.lineNumber());
-            if (line != null && (line.original == null || entry.id() < line.original.id())) {
-                line.original = entry;
-            }
+        for (Map.Entry<Integer, LineMatch> line : lines.entrySet()) {
+            line.getValue().original = output.getLineOriginal(line.getKey());
         }
 
         for (LineMatch line : lines.values()) {
-            line.exactTitle = title(line.original.text()).equals(terms.stream().map(SearchEngine::stripPunctuation).toList());
-            line.leading = startsWithPhrase(line.original, terms);
+            line.exactTitle = title(line.original.text(), options).equals(terms.stream().map(SearchEngine::stripPunctuation).toList());
+            line.leading = startsWithPhrase(line.original, terms, options);
         }
         List<LineMatch> ranked = new ArrayList<>(lines.values());
         ranked.sort(Comparator.comparing((LineMatch m) -> !m.exactTitle)
                 .thenComparing(m -> !m.phrase)
+                .thenComparing(Comparator.comparingInt(LineMatch::foundWords).reversed())
                 .thenComparing(Comparator.comparingInt(LineMatch::wholeWords).reversed())
                 .thenComparing(m -> !m.leading)
                 .thenComparing(m -> m.original.text().toLowerCase(Locale.ROOT))
                 .thenComparingInt(m -> m.original.lineNumber()));
+        // The order only rearranges the matching pages; ties keep their relevance order.
+        Comparator<LineMatch> alphabetical = Comparator.comparing(m -> m.original.text().toLowerCase(Locale.ROOT));
+        switch (options.order()) {
+            case RELEVANCE -> { }
+            case ALPHABETICAL -> ranked.sort(alphabetical);
+            case CLICKS -> ranked.sort(Comparator.comparingInt((LineMatch m) -> stats.clicks(m.original.url()))
+                    .reversed().thenComparing(alphabetical));
+            case BID -> ranked.sort(Comparator.comparingInt((LineMatch m) -> stats.bid(m.original.url()))
+                    .reversed().thenComparing(alphabetical));
+        }
         List<SearchResult> results = new ArrayList<>(ranked.size());
         for (LineMatch line : ranked) {
             KwicEntry original = line.original;
             List<String> missing = new ArrayList<>();
-            for (int t = 0; t < terms.size(); t++) {
+            for (int t = 0; mode == SearchMode.OR && t < terms.size(); t++) {
                 if (!line.found[t]) {
                     missing.add(terms.get(t));
                 }
@@ -217,16 +367,17 @@ public final class SearchEngine {
     }
 
     /** The words to search for: the query's words, without common ones unless only those remain. */
-    private static List<String> searchTerms(String query) {
-        List<String> words = words(query).stream().distinct().toList();
-        List<String> meaningful = words.stream().filter(w -> !STOP_WORDS.contains(stripPunctuation(w))).toList();
+    private static List<String> searchTerms(String query, SearchOptions options) {
+        List<String> words = words(query, options).stream().distinct().toList();
+        List<String> meaningful = words.stream()
+                .filter(w -> !STOP_WORDS.contains(stripPunctuation(w).toLowerCase(Locale.ROOT))).toList();
         return meaningful.isEmpty() ? words : meaningful;
     }
 
     /** A line's title: its words before the first word ending in a colon, or all its words. */
-    private static List<String> title(String text) {
+    private static List<String> title(String text, SearchOptions options) {
         List<String> title = new ArrayList<>();
-        for (String word : words(text)) {
+        for (String word : words(text, options)) {
             title.add(stripPunctuation(word));
             if (word.endsWith(":")) {
                 break;
@@ -237,8 +388,8 @@ public final class SearchEngine {
     }
 
     /** Whether the entry's shift starts with the search words, each as a word prefix. */
-    private static boolean startsWithPhrase(KwicEntry entry, List<String> terms) {
-        List<String> words = words(entry.text());
+    private static boolean startsWithPhrase(KwicEntry entry, List<String> terms, SearchOptions options) {
+        List<String> words = words(entry.text(), options);
         if (words.size() < terms.size()) {
             return false;
         }
@@ -263,14 +414,31 @@ public final class SearchEngine {
         return word.substring(start, end);
     }
 
+    /** Removes the symbols the user ignores, then lowercases the text unless case matters. */
+    private static String norm(String text, SearchOptions options) {
+        String kept = text;
+        Set<Integer> ignored = options.ignoredCodePoints();
+        if (!ignored.isEmpty()) {
+            kept = text.codePoints().filter(c -> !ignored.contains(c))
+                    .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString();
+        }
+        return options.caseSensitive() ? kept : kept.toLowerCase(Locale.ROOT);
+    }
+
     /** Splits text into lowercase words. */
     private static List<String> words(String text) {
+        return words(text, SearchOptions.DEFAULT);
+    }
+
+    /** Splits text into words, lowercased unless case matters. */
+    private static List<String> words(String text, SearchOptions options) {
         if (text == null || text.isBlank()) {
             return List.of();
         }
         return Arrays.stream(WHITESPACE.split(text.strip()))
                 .filter(w -> !w.isEmpty())
-                .map(w -> w.toLowerCase(Locale.ROOT))
+                .map(w -> norm(w, options))
+                .filter(w -> !w.isEmpty())
                 .toList();
     }
 

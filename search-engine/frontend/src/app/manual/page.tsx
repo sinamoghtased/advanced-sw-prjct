@@ -2,20 +2,36 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Manual · Quickdex",
-  description: "How to use Quickdex: searching, suggestions, results, and the Indexer tab.",
+  title: "Manual · Cyberminer",
+  description: "How to use Cyberminer: searching, search settings, suggestions, admin tools, and the Indexer tab.",
 };
 
 const results = [
-  ["Ranking", "Exact title, then exact phrase, then most matching words, then earliest match, then alphabetical."],
+  ["Best match order", "Exact title, then exact phrase, then most matching words, then earliest match, then alphabetical. This is the default order."],
   ["Exact phrase badge", "Your words matched together, in order, on the page."],
   ["KWIC matches", "The rotated context around your keyword; “+N more” shows there are others."],
   ["Missing", "Words struck through are ones no single page fully contains."],
 ];
 
+const settings = [
+  ["Search mode", "Any word (OR) is the default and finds pages with at least one of your words. All words (AND) needs every word. First word, not the others (NOT) finds pages with your first word and none of the rest; with a single word it finds the pages that do not have it."],
+  ["Match case", "Off by default. When on, “Java” does not find “java”."],
+  ["Symbols to ignore", "List symbols such as - or & to leave out when matching. With - ignored, “selfdriving” finds “self-driving”."],
+  ["Order results by", "Best match, A to Z, most clicked, or highest bid. The order never changes which pages match, only their sequence."],
+  ["Results per page", "Show 5, 10, 20 or 50 results at a time, and move between pages with Previous / Next or the page numbers."],
+];
+
+const adminSteps = [
+  ["Open the tools", "Press Admin tools above the results. Each result then shows a bid box and a Delete button."],
+  ["Delete a page", "Press Delete, then confirm. The page, its description and all its shifts leave the index. Cancel keeps the page."],
+  ["Set a bid", "Type a whole number and press Set bid. Pages with higher bids come first when results are ordered by highest bid."],
+  ["Admin key", "If the server has an admin key, you are asked to type it in. It is kept for this browser tab only."],
+];
+
 const indexerSteps = [
   ["Enter text", "Type or paste lines directly. One line = one entry."],
-  ["Create index", "Watch the circular shifts table fill and the alphabetized table grow, line by line."],
+  ["Create index", "Watch the circular shifts, the shifts left after noise-word filtering, and the alphabetized index fill in, line by line."],
+  ["Noise words", "Shifts that start with a common word such as “a”, “the” or “of” are removed from the index."],
   ["Slow motion", "Optionally build one line at a time instead of all at once."],
   ["Filter", "Find entries in the built alphabetized table by keyword."],
   ["Copy results", "Copy the circular shifts or alphabetized index as tab-separated text."],
@@ -23,9 +39,11 @@ const indexerSteps = [
 ];
 
 const limitations = [
-  "Search matches are prefix matches on whole words, not substring or fuzzy matches.",
-  "Live web sources exist in the code but are off by default; Phase I answers only from corpus.txt.",
-  "Indexes are in memory only — restarting the backend clears anything built in the Indexer tab.",
+  "Search matches are prefix matches on words, not substring matches. Typos are corrected only in the suggestions while you type.",
+  "A search made only of common words, such as “the”, finds nothing, because the index leaves out shifts that start with them.",
+  "Online sources are queried alongside the built-in index only when they are turned on; they are off by default.",
+  "Pages must have a URL ending in .edu, .com, .org or .net and a description. Other pages are rejected.",
+  "Everything is held in memory — restarting the backend clears indexes built in the Indexer tab, and also forgets deleted pages, clicks and bids.",
   "The Indexer accepts up to 10,000 Unicode code points, including whitespace.",
 ];
 
@@ -37,14 +55,14 @@ export default function ManualPage() {
           User manual &middot; preliminary
         </p>
         <h1 className="max-w-2xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-          How to use Quickdex.
+          How to use Cyberminer.
         </h1>
         <p className="max-w-2xl text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-          Quickdex is a search engine built on a Key Word In Context (KWIC) index: every word is
-          rotated to the front once, and those rotations are sorted alphabetically. That&rsquo;s
-          why a search word must <em>start</em> a word on the page, not just appear inside it. In
-          Phase I, results come only from the engine&rsquo;s own built-in index &mdash; no live
-          internet lookups.
+          Cyberminer is a web search engine built on the Quickdex Key Word In Context (KWIC)
+          index: every word is rotated to the front once, and those rotations are sorted
+          alphabetically. That&rsquo;s why a search word must <em>start</em> a word on the page, not
+          just appear inside it. Results come from the engine&rsquo;s own built-in index; online
+          sources can be added alongside it when they are turned on.
         </p>
         <Link
           href="/"
@@ -69,7 +87,7 @@ export default function ManualPage() {
             <kbd className="rounded border border-black/[.15] px-1 text-xs dark:border-white/[.25]">Esc</kbd> to close), or press{" "}
             <kbd className="rounded border border-black/[.15] px-1 text-xs dark:border-white/[.25]">Enter</kbd> to search what you typed.
           </li>
-          <li>Page through results with Previous / Next or the page numbers.</li>
+          <li>Page through results with Previous / Next or the page numbers. Click a result to open its web site.</li>
         </ol>
         <ul className="grid gap-3 sm:grid-cols-2">
           {results.map(([name, job]) => (
@@ -86,7 +104,50 @@ export default function ManualPage() {
 
       <section className="flex flex-col gap-4">
         <h2 className="text-sm font-medium uppercase tracking-widest text-zinc-500">
-          2. Building your own index (the Indexer tab)
+          2. Search settings
+        </h2>
+        <p className="max-w-2xl text-zinc-600 dark:text-zinc-400">
+          Press <strong className="text-foreground">Search settings</strong> under the search box.
+          Changing a setting runs the search you are looking at again, and the settings stay in the
+          address so you can share a link.
+        </p>
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {settings.map(([name, job]) => (
+            <li
+              key={name}
+              className="rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]"
+            >
+              <p className="font-medium">{name}</p>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">{job}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <h2 className="text-sm font-medium uppercase tracking-widest text-zinc-500">
+          3. Admin tools
+        </h2>
+        <p className="max-w-2xl text-zinc-600 dark:text-zinc-400">
+          Administrators keep the index up to date. Anyone who has the admin key is an administrator;
+          nobody else can delete pages or set bids.
+        </p>
+        <ol className="grid gap-3 sm:grid-cols-2">
+          {adminSteps.map(([name, job]) => (
+            <li
+              key={name}
+              className="rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]"
+            >
+              <p className="font-medium">{name}</p>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">{job}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <h2 className="text-sm font-medium uppercase tracking-widest text-zinc-500">
+          4. Building your own index (the Indexer tab)
         </h2>
         <p className="max-w-2xl text-zinc-600 dark:text-zinc-400">
           The{" "}
@@ -111,7 +172,7 @@ export default function ManualPage() {
 
       <section className="flex flex-col gap-4">
         <h2 className="text-sm font-medium uppercase tracking-widest text-zinc-500">
-          3. Known limitations (Phase I)
+          5. Known limitations
         </h2>
         <ul className="max-w-2xl list-disc space-y-2 pl-5 text-zinc-600 dark:text-zinc-400">
           {limitations.map((item) => (
