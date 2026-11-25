@@ -36,6 +36,7 @@ java -cp target/quickdex-engine.jar edu.utdallas.quickdex.MasterControl input.tx
 | ------- | ------- | ------- |
 | `PORT` (or the first argument) | `8080` | Port for the HTTP API |
 | `QUICKDEX_CORPUS` | [`corpus.txt`](src/main/resources/corpus.txt) | File of pages for the web index at startup: one per line, a URL then its description |
+| `QUICKDEX_ADMIN_KEY` | none (admin actions are open) | Secret that deleting a page (`DELETE /pages`) and setting a bid (`POST /bid`) need in the `X-Admin-Key` header. Always set it on a public server |
 
 ## Deploying
 
@@ -48,6 +49,8 @@ only builds and hosts the Next.js app). A [`Dockerfile`](Dockerfile) and a
 2. **New +** → **Blueprint** → pick this repository. Render reads [`render.yaml`](../../render.yaml)
    at the repo root, builds `search-engine/backend` with its `Dockerfile`, and deploys it as a free
    web service named `quickdex-backend`.
+   Render asks for a value for `QUICKDEX_ADMIN_KEY`: choose a long random secret and keep it
+   somewhere safe. Administrators type it into the Search page's admin tools.
 3. Once it's live, copy its URL (e.g. `https://quickdex-backend.onrender.com`).
 4. In the Vercel project's **Settings → Environment Variables**, set `QUICKDEX_BACKEND_URL` to that
    URL for the Production environment, then redeploy the frontend (a new env var needs a rebuild).
