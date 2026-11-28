@@ -84,6 +84,7 @@ it with the platform's `PORT` env var set, and point `QUICKDEX_BACKEND_URL` at i
 | `POST /index` | Builds a new index from the posted text and streams an update after every line, as newline-delimited JSON. `delay=MS` slows it down for demos. |
 | `GET /export?index=ID&format=csv\|txt` | Downloads an index as a file |
 | `GET /stats` | Number of pages and index entries (add `index=ID` for a built index) |
+| `GET /events` | Stays open and sends a server-sent event when pages are added or deleted, or a click or bid changes in the web index |
 | `GET /health` | Reports that the server is running |
 
 ## Code layout
