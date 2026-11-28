@@ -18,6 +18,8 @@ import java.util.Map;
  * <p>Shifts are compared word by word, in Unicode code-point order. {@link Order#CASE_INSENSITIVE}
  * (the default) compares words after locale-independent lowercasing. Shifts that compare
  * equal keep their generation order, so the same input always gives the same index.
+ *
+ * <p><b>Pattern: Strategy</b>, in its enum form: {@link Order} picks how words are compared.
  */
 public final class Alphabetizer {
 

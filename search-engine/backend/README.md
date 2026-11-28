@@ -38,6 +38,20 @@ java -cp target/quickdex-engine.jar edu.utdallas.quickdex.MasterControl input.tx
 | `QUICKDEX_CORPUS` | [`corpus.txt`](src/main/resources/corpus.txt) | File of pages for the web index at startup: one per line, a URL then its description |
 | `QUICKDEX_ADMIN_KEY` | none (admin actions are open) | Secret that deleting a page (`DELETE /pages`) and setting a bid (`POST /bid`) need in the `X-Admin-Key` header. Always set it on a public server |
 
+## Design patterns
+
+Gang of Four patterns in the engine, each named in the class's Javadoc:
+
+| Pattern | Where | What it gives |
+| ------- | ----- | ------------- |
+| Facade | `MasterControl` | One entry point (`run`, `search`, `suggest`, `delete`, `export`) for the server, the command line and the tests |
+| Strategy (enum form) | `ResultOrder`, `SearchMode`, `Alphabetizer.Order` | Search and ordering rules chosen by a setting, with one `switch` to extend |
+| Bridge | `InputMedium` and `OutputMedium` | The same pipeline behind the web page, the command line and the tests |
+| Decorator | `LoggingMedium` in `MasterControl` | Logging around the real output, without changing it |
+
+The web app's Proxy and its two-layer structure are described in the
+[frontend README](../frontend/README.md).
+
 ## Deploying
 
 The [frontend](../frontend)'s live Vercel deployment needs a publicly reachable backend (Vercel

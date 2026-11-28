@@ -1,2 +1,7 @@
 # macOS folder metadata
 .DS_Store
+
+# Local secrets (for example QUICKDEX_ADMIN_KEY); never commit these
+.env
+.env.*
+!.env.example

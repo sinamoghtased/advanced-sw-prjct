@@ -6,6 +6,9 @@ import java.util.List;
  * Where results go: the web page, a file, or the console.
  *
  * <p>The Output Medium sits outside the KWIC system and is reached through system I/O.
+ *
+ * <p><b>Pattern: Bridge.</b> The pipeline stays the same while the medium varies: the web page
+ * ({@code WebOutputMedium}), the console, and the recorder the tests use.
  */
 public interface OutputMedium {
 
