@@ -60,6 +60,8 @@ import java.util.function.Consumer;
  *       update after every line, as newline-delimited JSON. The optional {@code delay}
  *       parameter slows processing to that many milliseconds per line, for demos.</li>
  *   <li>{@code GET /export?index=ID&format=csv|txt} downloads an index as a file.</li>
+ *   <li>{@code GET /events} stays open and sends a server-sent event each time pages are
+ *       added or deleted, or a click or bid changes in the web index.</li>
  *   <li>{@code GET /health} reports that the server is running.</li>
  * </ul>
  *
@@ -87,6 +89,7 @@ public final class EngineServer {
     private final IndexSession webIndex;
     /** The key that admin actions need, or null if the server is open (local development). */
     private final String adminKey;
+    private final ChangeStream changes = new ChangeStream();
     private final Map<String, IndexSession> indexes = new LinkedHashMap<>(16, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<String, IndexSession> eldest) {
@@ -125,6 +128,8 @@ public final class EngineServer {
         server.createContext("/click", this::click);
         server.createContext("/bid", this::bid);
         server.createContext("/export", this::export);
+        server.createContext("/events", this::events);
+        webIndex.control.addListener(changes);
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
     }
 
@@ -198,6 +203,7 @@ public final class EngineServer {
 
     /** Stops the server. */
     public void stop() {
+        changes.close();
         server.stop(0);
     }
 
@@ -208,6 +214,15 @@ public final class EngineServer {
         String portSetting = args.length > 0 ? args[0] : System.getenv().getOrDefault("PORT", "8080");
         EngineServer engine = start(Integer.parseInt(portSetting));
         System.out.println("Quickdex engine listening on http://localhost:" + engine.port());
+    }
+
+    private void events(HttpExchange exchange) throws IOException {
+        if (!"GET".equals(exchange.getRequestMethod())) {
+            exchange.getResponseHeaders().set("Allow", "GET");
+            send(exchange, 405, "application/json", Json.error("Use GET."));
+            return;
+        }
+        changes.serve(exchange);
     }
 
     private void health(HttpExchange exchange) throws IOException {

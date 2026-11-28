@@ -38,6 +38,21 @@ java -cp target/quickdex-engine.jar edu.utdallas.quickdex.MasterControl input.tx
 | `QUICKDEX_CORPUS` | [`corpus.txt`](src/main/resources/corpus.txt) | File of pages for the web index at startup: one per line, a URL then its description |
 | `QUICKDEX_ADMIN_KEY` | none (admin actions are open) | Secret that deleting a page (`DELETE /pages`) and setting a bid (`POST /bid`) need in the `X-Admin-Key` header. Always set it on a public server |
 
+## Design patterns
+
+Gang of Four patterns in the engine, each named in the class's Javadoc:
+
+| Pattern | Where | What it gives |
+| ------- | ----- | ------------- |
+| Facade | `MasterControl` | One entry point (`run`, `search`, `suggest`, `delete`, `export`) for the server, the command line and the tests |
+| Strategy (enum form) | `ResultOrder`, `SearchMode`, `Alphabetizer.Order` | Search and ordering rules chosen by a setting, with one `switch` to extend |
+| Bridge | `InputMedium` and `OutputMedium` | The same pipeline behind the web page, the command line and the tests |
+| Decorator | `LoggingMedium` in `MasterControl` | Logging around the real output, without changing it |
+| Observer | `ModelListener`, with `MasterControl` as the subject | The model tells listeners when pages, clicks or bids change; `ChangeStream` passes each change to open browser pages (`GET /events`) |
+
+The web app's Proxy and its model-view-controller structure are described in the
+[frontend README](../frontend/README.md).
+
 ## Deploying
 
 The [frontend](../frontend)'s live Vercel deployment needs a publicly reachable backend (Vercel
@@ -70,6 +85,7 @@ it with the platform's `PORT` env var set, and point `QUICKDEX_BACKEND_URL` at i
 | `POST /index` | Builds a new index from the posted text and streams an update after every line, as newline-delimited JSON. `delay=MS` slows it down for demos. |
 | `GET /export?index=ID&format=csv\|txt` | Downloads an index as a file |
 | `GET /stats` | Number of pages and index entries (add `index=ID` for a built index) |
+| `GET /events` | Stays open and sends a server-sent event when pages are added or deleted, or a click or bid changes in the web index |
 | `GET /health` | Reports that the server is running |
 
 ## Code layout

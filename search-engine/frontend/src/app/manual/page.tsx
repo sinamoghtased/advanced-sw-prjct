@@ -41,7 +41,6 @@ const indexerSteps = [
 const limitations = [
   "Search matches are prefix matches on words, not substring matches. Typos are corrected only in the suggestions while you type.",
   "A search made only of common words, such as “the”, finds nothing, because the index leaves out shifts that start with them.",
-  "Online sources are queried alongside the built-in index only when they are turned on; they are off by default.",
   "Pages must have a URL ending in .edu, .com, .org or .net and a description. Other pages are rejected.",
   "Everything is held in memory — restarting the backend clears indexes built in the Indexer tab, and also forgets deleted pages, clicks and bids.",
   "The Indexer accepts up to 10,000 Unicode code points, including whitespace.",
@@ -61,8 +60,7 @@ export default function ManualPage() {
           Cyberminer is a web search engine built on the Quickdex Key Word In Context (KWIC)
           index: every word is rotated to the front once, and those rotations are sorted
           alphabetically. That&rsquo;s why a search word must <em>start</em> a word on the page, not
-          just appear inside it. Results come from the engine&rsquo;s own built-in index; online
-          sources can be added alongside it when they are turned on.
+          just appear inside it. Results come from the engine&rsquo;s own built-in index.
         </p>
         <Link
           href="/"

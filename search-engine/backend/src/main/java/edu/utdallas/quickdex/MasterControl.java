@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 /**
@@ -23,6 +24,14 @@ import java.util.stream.Collectors;
  *
  * <p>The engine depends only on the Java standard library and on the two media, so it runs
  * the same way from the web server, the command line, or a test (NFR3.0).
+ *
+ * <p><b>Pattern: Facade.</b> The web server, the command line and the tests drive the engine
+ * through this class ({@code run}, {@code search}, {@code suggest}, {@code delete},
+ * {@code export}); only its static text and URL checks are called on {@link Input} directly.
+ *
+ * <p><b>Pattern: Observer.</b> This class is also the subject: a {@link ModelListener} added
+ * with {@link #addListener} is told whenever pages are added or deleted, or a click or bid
+ * changes.
  */
 public final class MasterControl {
 
@@ -35,6 +44,7 @@ public final class MasterControl {
     private final SearchEngine searchEngine;
     private final PageStats pageStats = new PageStats();
     private final LoggingMedium loggingMedium;
+    private final List<ModelListener> listeners = new CopyOnWriteArrayList<>();
 
     /** A summary of one run, for the caller and the log. */
     public record RunSummary(int linesIndexed, int linesSkipped, int shifts, long elapsedMillis) {
@@ -82,7 +92,30 @@ public final class MasterControl {
         RunSummary summary = new RunSummary(indexed, skipped, alphabetizer.getShiftCount(),
                 (System.nanoTime() - start) / 1_000_000);
         logSummary(summary);
+        if (indexed > 0) {
+            notifyListeners(new ModelChange(ModelChange.Kind.PAGES_ADDED, null));
+        }
         return summary;
+    }
+
+    /** Asks to be told about every later change to the data. */
+    public void addListener(ModelListener listener) {
+        listeners.add(listener);
+    }
+
+    /** Stops telling {@code listener} about changes. */
+    public void removeListener(ModelListener listener) {
+        listeners.remove(listener);
+    }
+
+    private void notifyListeners(ModelChange change) {
+        for (ModelListener listener : listeners) {
+            try {
+                listener.modelChanged(change);
+            } catch (RuntimeException e) {
+                LOG.log(Level.WARNING, "a listener failed: {0}", e.toString());
+            }
+        }
     }
 
     /** Searches the index with the default OR mode and shows the matching pages on the Output Medium. */
@@ -98,11 +131,13 @@ public final class MasterControl {
     /** Counts a click on a result's URL, for ordering results by most clicks. */
     public void recordClick(String url) {
         pageStats.recordClick(url);
+        notifyListeners(new ModelChange(ModelChange.Kind.CLICKED, url));
     }
 
     /** Sets a URL's bid, for ordering results by highest bid. */
     public void setBid(String url, int amount) {
         pageStats.setBid(url, amount);
+        notifyListeners(new ModelChange(ModelChange.Kind.BID_CHANGED, url));
     }
 
     /**
@@ -118,6 +153,7 @@ public final class MasterControl {
         }
         if (!lines.isEmpty()) {
             pageStats.forget(url);
+            notifyListeners(new ModelChange(ModelChange.Kind.PAGE_DELETED, url));
         }
         return lines.size();
     }
@@ -178,7 +214,11 @@ public final class MasterControl {
                 summary.linesIndexed(), summary.linesSkipped(), summary.shifts(), summary.elapsedMillis(), index);
     }
 
-    /** Passes everything to the real Output Medium, remembering the last update for the log. */
+    /**
+     * Passes everything to the real Output Medium, remembering the last update for the log.
+     *
+     * <p><b>Pattern: Decorator.</b> It wraps an {@link OutputMedium} and is one itself.
+     */
     private static final class LoggingMedium implements OutputMedium {
         private final OutputMedium target;
         private List<PlacedEntry> lastInserted = List.of();

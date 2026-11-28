@@ -3,8 +3,7 @@
 The Next.js web app: the search engine (home page), the Indexer, the Manual, and the About page.
 It sends
 searches to the [Java backend](../backend), which answers from its own KWIC index built from
-[`corpus.txt`](../backend/src/main/resources/corpus.txt). Live results from free online sources
-are optional and off by default (see [Online sources](#online-sources)).
+[`corpus.txt`](../backend/src/main/resources/corpus.txt).
 
 ## Requirements
 
@@ -33,26 +32,6 @@ Copy [`.env.example`](.env.example) to `.env.local` to change these settings:
 | Variable | Default | Purpose |
 | -------- | ------- | ------- |
 | `QUICKDEX_BACKEND_URL` | `http://localhost:8080` | Where the Java backend runs |
-| `QUICKDEX_WEB_SOURCES` | `off` | Online sources for live results, separated by commas, or `off` (Phase I default: answer only from `corpus.txt`) |
-| `STACKEXCHANGE_KEY` | — | Optional free key that raises Stack Exchange's limit from 300 to 10,000 requests a day |
-| `BRAVE_API_KEY` | — | Adds [Brave Search](https://brave.com/search/api/) for results from the whole web (paid after a monthly credit) |
-
-## Online sources
-
-Phase I answers every search only from the backend's own index, built from
-[`corpus.txt`](../backend/src/main/resources/corpus.txt) (or the file `QUICKDEX_CORPUS` points
-to). Live web sources are optional: set `QUICKDEX_WEB_SOURCES` to opt back in. When enabled, the
-app asks every listed source for matching pages and posts them to the backend, which adds new
-ones to its KWIC index one line at a time and then answers the search. Answers are cached for a
-day, and a source that fails or is paused is skipped.
-
-| Source | Adds | Key | Limit |
-| ------ | ---- | --- | ----- |
-| Wikipedia | Encyclopedia articles | None | 200 requests a minute |
-| Hacker News (Algolia) | Articles from across the web | None | 10,000 requests an hour |
-| Stack Overflow (Stack Exchange) | Programming questions | Optional | 300 a day, or 10,000 with a key |
-| arXiv | Research papers | None | One request every 3 seconds; searches in between skip arXiv |
-| Brave Search | The whole web | Required | Monthly credit, then paid |
 
 ## Code layout
 
@@ -68,9 +47,26 @@ src/
 ├── components/             # Navbar, and the search box with suggestions
 └── services/
     ├── engine/             # Calls to the Java backend (backend.ts) and shared types (client.ts)
-    └── web-search/         # One file per online source, and index.ts to combine them
 public/                     # Static files served at the site root
 ```
+
+### Structure: model, view and controller
+
+The system has two layers, and together they follow model-view-controller:
+
+- **Model:** the Java engine's data: the stored pages, the KWIC index, and the click and bid counts.
+- **Controller:** the Java engine's `MasterControl` and HTTP server, which take requests, change the model and answer.
+- **View:** this app's pages and components. The routes under `app/api/` and `services/engine`
+  only forward requests to the engine (a Proxy); they hold no search logic.
+
+The view follows the model by Observer. The engine tells its listeners (`ModelListener`) when
+pages are added or deleted, or a click or bid changes. The server passes each change to the
+browser as a server-sent event (`/events`, through `app/api/events`), and
+`components/live-updates.tsx` refreshes the page's data when one arrives. A change made in one
+tab shows up in the others without a reload.
+
+Only the shared web index sends changes. An index built in the Indexer tab belongs to one page,
+which already updates line by line as it is built.
 
 ## Deployment
 
