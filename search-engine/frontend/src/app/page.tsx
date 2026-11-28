@@ -4,7 +4,6 @@ import { AdminProvider, AdminToggle, ResultAdmin } from "@/components/admin";
 import ResultLink from "@/components/result-link";
 import SearchBox from "@/components/search-box";
 import { getFromEngine } from "@/services/engine/backend";
-import { type IngestResult, addWebPages, webSourceNames } from "@/services/web-search";
 import {
   type SearchResponse,
   type SearchResult,
@@ -65,9 +64,6 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
     return <Home index={index} settings={settings} />;
   }
 
-  // Optional: fetch matching pages from live online sources into the web index (off by
-  // default in Phase I, which answers only from the backend's own corpus.txt index).
-  const live = index ? null : await addWebPages(query);
   const reply = await getFromEngine<SearchResponse>("/search", {
     q: query,
     index,
@@ -96,7 +92,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
           )}
         </Notice>
       ) : (
-        <Results response={reply.data} query={query} index={index} page={page} live={live} settings={settings} />
+        <Results response={reply.data} query={query} index={index} page={page} settings={settings} />
       )}
     </main>
   );
@@ -120,7 +116,6 @@ async function Home({ index, settings }: { index: string; settings: SearchSettin
           Searching {stats.data.pages.toLocaleString("en-US")}{" "}
           {index ? "of your pages" : "pages"} · {stats.data.entries.toLocaleString("en-US")} index
           entries
-          {!index && webSourceNames().length > 0 && ` · plus live pages from ${listNames(webSourceNames())}`}
         </p>
       ) : (
         <Notice>
@@ -159,14 +154,12 @@ function Results({
   query,
   index,
   page,
-  live,
   settings,
 }: {
   response: SearchResponse;
   query: string;
   index: string;
   page: number;
-  live: IngestResult;
   settings: SearchSettings;
 }) {
   const words = searchWords(query);
@@ -181,16 +174,9 @@ function Results({
           {response.total.toLocaleString("en-US")} {response.total === 1 ? "result" : "results"} ({time})
           · searched {response.pages.toLocaleString("en-US")} pages and{" "}
           {response.entries.toLocaleString("en-US")} index entries
-          {live && live.added > 0 && ` · ${live.added} new from ${listNames(live.used)}`}
         </p>
         <AdminToggle />
       </div>
-      {live && live.failed.length > 0 && (
-        <p className="text-sm text-amber-700 dark:text-amber-300">
-          {listNames(live.failed)} did not respond; showing pages from the other sources and the
-          index.
-        </p>
-      )}
       {response.results.length > 0 && response.results[0].missing.length > 0 && (
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           No page contains all of your words. Showing pages with most of them.
@@ -376,12 +362,6 @@ function Notice({ children }: { children: React.ReactNode }) {
       {children}
     </div>
   );
-}
-
-/** "A", "A and B", or "A, B, and C". */
-function listNames(names: string[]): string {
-  if (names.length <= 1) return names.join("");
-  return `${names.slice(0, -1).join(", ")}${names.length > 2 ? "," : ""} and ${names[names.length - 1]}`;
 }
 
 function Wordmark() {

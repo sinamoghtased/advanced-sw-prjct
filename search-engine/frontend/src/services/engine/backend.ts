@@ -3,6 +3,9 @@
  *
  * The engine's address is read from QUICKDEX_BACKEND_URL, and defaults to a backend running
  * locally (see "Run locally" in the README).
+ *
+ * Pattern: Proxy. The browser only ever talks to the routes under app/api, which pass each
+ * request on to the engine, so the engine's address and the admin key never reach the page.
  */
 const ENGINE_URL = process.env.QUICKDEX_BACKEND_URL ?? "http://localhost:8080";
 
