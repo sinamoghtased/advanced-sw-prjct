@@ -48,8 +48,9 @@ Gang of Four patterns in the engine, each named in the class's Javadoc:
 | Strategy (enum form) | `ResultOrder`, `SearchMode`, `Alphabetizer.Order` | Search and ordering rules chosen by a setting, with one `switch` to extend |
 | Bridge | `InputMedium` and `OutputMedium` | The same pipeline behind the web page, the command line and the tests |
 | Decorator | `LoggingMedium` in `MasterControl` | Logging around the real output, without changing it |
+| Observer | `ModelListener`, with `MasterControl` as the subject | The model tells listeners when pages, clicks or bids change; `ChangeStream` passes each change to open browser pages (`GET /events`) |
 
-The web app's Proxy and its two-layer structure are described in the
+The web app's Proxy and its model-view-controller structure are described in the
 [frontend README](../frontend/README.md).
 
 ## Deploying

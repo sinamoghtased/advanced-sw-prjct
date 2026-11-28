@@ -50,17 +50,23 @@ src/
 public/                     # Static files served at the site root
 ```
 
-### Structure: two layers
+### Structure: model, view and controller
 
-The system has two layers. The web layer (this app) is the view: the pages and components draw
-the screen and send what the user types. The routes under `app/api/` and `services/engine`
-only forward requests to the Java engine and pass its answers back. They hold no search logic
-and call no other service. The Java engine is the controller (`MasterControl`) around the
-models (the stored pages, the index and the click and bid counts).
+The system has two layers, and together they follow model-view-controller:
 
-This is a loose model-view-controller split, not a full one. The view does not get updated
-automatically when the model changes (no Observer): a page shows new data only after it asks
-the engine again, for example by searching or reloading.
+- **Model:** the Java engine's data: the stored pages, the KWIC index, and the click and bid counts.
+- **Controller:** the Java engine's `MasterControl` and HTTP server, which take requests, change the model and answer.
+- **View:** this app's pages and components. The routes under `app/api/` and `services/engine`
+  only forward requests to the engine (a Proxy); they hold no search logic.
+
+The view follows the model by Observer. The engine tells its listeners (`ModelListener`) when
+pages are added or deleted, or a click or bid changes. The server passes each change to the
+browser as a server-sent event (`/events`, through `app/api/events`), and
+`components/live-updates.tsx` refreshes the page's data when one arrives. A change made in one
+tab shows up in the others without a reload.
+
+Only the shared web index sends changes. An index built in the Indexer tab belongs to one page,
+which already updates line by line as it is built.
 
 ## Deployment
 
