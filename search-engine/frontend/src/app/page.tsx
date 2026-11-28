@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminProvider, AdminToggle, ResultAdmin } from "@/components/admin";
+import LiveUpdates from "@/components/live-updates";
 import ResultLink from "@/components/result-link";
 import SearchBox from "@/components/search-box";
 import { getFromEngine } from "@/services/engine/backend";
@@ -74,6 +75,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6">
+      {!index && <LiveUpdates />}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
         <Link href={href("", index, settings)} className="text-2xl font-semibold tracking-tight">
           <Wordmark />
@@ -102,6 +104,7 @@ async function Home({ index, settings }: { index: string; settings: SearchSettin
   const stats = await getFromEngine<{ pages: number; entries: number }>("/stats", { index });
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-7 px-4 py-16">
+      {!index && <LiveUpdates />}
       <div className="flex flex-col items-center gap-3 text-center">
         <h1 className="text-5xl font-semibold tracking-tight sm:text-6xl">
           <Wordmark />
